@@ -1,0 +1,118 @@
+{
+  "app": {
+    "name": "विंटर आर्क (Winter Arc)",
+    "tagline": "90 दिन। आपका सर्वश्रेष्ठ रूप।",
+    "subtagline": "सिर्फ आदतें न गिनें। अपना आर्क बनाएं।",
+    "startArc": "मेरा आर्क शुरू करें ❄️",
+    "seeHowItWorks": "यह कैसे काम करता है",
+    "features": "विशेषताएं",
+    "login": "लॉग इन",
+    "signup": "साइन अप",
+    "logout": "लॉग आउट"
+  },
+  "nav": {
+    "dashboard": "आज",
+    "arc": "मेरा आर्क",
+    "calendar": "कैलेंडर",
+    "analytics": "एनालिटिक्स",
+    "achievements": "उपलब्धियां",
+    "friends": "दोस्त",
+    "groups": "समूह",
+    "share": "शेयर करें",
+    "settings": "सेटिंग्स",
+    "profile": "प्रोफ़ाइल"
+  },
+  "dashboard": {
+    "greeting": "शुभ प्रभात",
+    "greetingEvening": "शुभ संध्या",
+    "day": "दिन",
+    "todayHabits": "आज का अनुशासन",
+    "score": "आज का स्कोर",
+    "habitsCompleted": "पूरी की गई आदतें",
+    "perfectDay": "उत्कृष्ट दिन ❄️",
+    "perfectDayMsg": "आज की सभी आदतें पूरी हो गईं! +100 XP प्राप्त हुआ।",
+    "streak": "दिनों की स्ट्रीक",
+    "overallCompletion": "कुल प्रगति",
+    "remaining": "शेष आदतें",
+    "done": "पूर्ण",
+    "notDone": "अपूर्ण",
+    "enterValue": "मान दर्ज करें",
+    "target": "लक्ष्य"
+  },
+  "onboarding": {
+    "title": "अपना आर्क तैयार करें",
+    "subtitle": "90 दिनों के निरंतर अनुशासन का संकल्प लें।",
+    "step1": "1. भाषा चुनें",
+    "step2": "2. फोकस क्षेत्र",
+    "step3": "3. अवधि",
+    "step4": "4. टेम्पलेट चुनें",
+    "step5": "5. आदतें अनुकूलित करें",
+    "nameYourArc": "अपनी चुनौती का नाम",
+    "startDate": "आरंभ तिथि",
+    "endDate": "समाप्ति तिथि",
+    "launchArc": "मेरा आर्क शुरू करें ❄️",
+    "maxHabitsAlert": "अधिकतम 10 आदतों की अनुमति है।"
+  },
+  "calendar": {
+    "title": "90 दिनों की यात्रा",
+    "subtitle": "हर एक बॉक्स आपकी प्रतिबद्धता को दर्शाता है।",
+    "dayDetail": "दिन का विवरण",
+    "completed": "पूर्ण",
+    "missed": "छूट गया",
+    "legendPerfect": "उत्कृष्ट (100%)",
+    "legendPartial": "आंशिक",
+    "legendMissed": "छूट गया",
+    "legendUpcoming": "आगामी"
+  },
+  "analytics": {
+    "title": "प्रगति विश्लेषण",
+    "overallRate": "पूर्णता दर",
+    "currentStreak": "वर्तमान स्ट्रीक",
+    "longestStreak": "सर्वश्रेष्ठ स्ट्रीक",
+    "perfectDays": "उत्कृष्ट दिन",
+    "totalXp": "कुल XP",
+    "completedDays": "पूर्ण दिन",
+    "missedDays": "छूटे हुए दिन",
+    "habitBreakdown": "आदत अनुसार विश्लेषण"
+  },
+  "achievements": {
+    "title": "उपलब्धियां और पदक",
+    "level": "स्तर",
+    "xpToNext": "अगले स्तर के लिए XP",
+    "unlocked": "अनलॉक किया गया",
+    "locked": "लॉक",
+    "recentXp": "हालिया XP लॉग"
+  },
+  "social": {
+    "friendsTitle": "जवाबदेही साथी",
+    "searchPlaceholder": "उपयोगकर्ता नाम से खोजें...",
+    "addFriend": "मित्र जोड़ें",
+    "pendingRequests": "लंबित अनुरोध",
+    "accept": "स्वीकार करें",
+    "reject": "अस्वीकार करें",
+    "groupsTitle": "निजी आर्क समूह",
+    "createGroup": "समूह बनाएं",
+    "joinGroup": "समूह में शामिल हों",
+    "groupCode": "समूह कोड दर्ज करें",
+    "avgCompletion": "समूह औसत पूर्णता",
+    "groupStreak": "समूह स्ट्रीक"
+  },
+  "share": {
+    "title": "अपना अनुशासन साझा करें",
+    "subtitle": "इंस्टाग्राम और व्हाट्सएप के लिए प्रगति कार्ड बनाएं।",
+    "downloadBadge": "कार्ड डाउनलोड करें",
+    "copyLink": "लिंक कॉपी करें",
+    "copied": "क्लिपबोर्ड पर कॉपी हो गया!",
+    "daysOfDiscipline": "अटूट अनुशासन के दिन"
+  },
+  "settings": {
+    "title": "सेटिंग्स",
+    "profile": "प्रोफ़ाइल",
+    "language": "भाषा",
+    "theme": "थीम",
+    "privacy": "गोपनीयता मोड",
+    "notifications": "सूचनाएं",
+    "save": "परिवर्तन सहेजें",
+    "saved": "सफलतापूर्वक सहेजा गया!"
+  }
+}

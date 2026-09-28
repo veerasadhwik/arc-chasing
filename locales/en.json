@@ -1,0 +1,118 @@
+{
+  "app": {
+    "name": "Winter Arc",
+    "tagline": "90 Days. One Version Better.",
+    "subtagline": "Don't just track your habits. Build your arc.",
+    "startArc": "START MY ARC ❄️",
+    "seeHowItWorks": "See How It Works",
+    "features": "Features",
+    "login": "Log In",
+    "signup": "Sign Up",
+    "logout": "Log Out"
+  },
+  "nav": {
+    "dashboard": "Today",
+    "arc": "My Arc",
+    "calendar": "Calendar",
+    "analytics": "Analytics",
+    "achievements": "Achievements",
+    "friends": "Friends",
+    "groups": "Groups",
+    "share": "Share",
+    "settings": "Settings",
+    "profile": "Profile"
+  },
+  "dashboard": {
+    "greeting": "Good Morning",
+    "greetingEvening": "Good Evening",
+    "day": "DAY",
+    "todayHabits": "Today's Discipline",
+    "score": "TODAY'S SCORE",
+    "habitsCompleted": "habits completed",
+    "perfectDay": "PERFECT DAY ❄️",
+    "perfectDayMsg": "All daily habits conquered! +100 XP awarded.",
+    "streak": "Day Streak",
+    "overallCompletion": "Overall Progress",
+    "remaining": "habits left today",
+    "done": "Done",
+    "notDone": "Not Done",
+    "enterValue": "Enter Value",
+    "target": "Target"
+  },
+  "onboarding": {
+    "title": "Forge Your Arc",
+    "subtitle": "Commit to 90 days of relentless consistency.",
+    "step1": "1. Select Language",
+    "step2": "2. Focus Area",
+    "step3": "3. Arc Duration",
+    "step4": "4. Choose Template",
+    "step5": "5. Customize Habits",
+    "nameYourArc": "Name Your Challenge",
+    "startDate": "Start Date",
+    "endDate": "Calculated End Date",
+    "launchArc": "START MY ARC ❄️",
+    "maxHabitsAlert": "Maximum 10 habits allowed for focused discipline."
+  },
+  "calendar": {
+    "title": "90-Day Visual Journey",
+    "subtitle": "Every single square represents your commitment.",
+    "dayDetail": "Day Details",
+    "completed": "Completed",
+    "missed": "Missed",
+    "legendPerfect": "Perfect (100%)",
+    "legendPartial": "Partial",
+    "legendMissed": "Missed",
+    "legendUpcoming": "Upcoming"
+  },
+  "analytics": {
+    "title": "Performance Analytics",
+    "overallRate": "Completion Rate",
+    "currentStreak": "Current Streak",
+    "longestStreak": "Longest Streak",
+    "perfectDays": "Perfect Days",
+    "totalXp": "Total XP",
+    "completedDays": "Days Completed",
+    "missedDays": "Days Missed",
+    "habitBreakdown": "Habit-by-Habit Performance"
+  },
+  "achievements": {
+    "title": "Trophy Room & Badges",
+    "level": "Level",
+    "xpToNext": "XP to next level",
+    "unlocked": "Unlocked",
+    "locked": "Locked",
+    "recentXp": "Recent XP Log"
+  },
+  "social": {
+    "friendsTitle": "Accountability Partners",
+    "searchPlaceholder": "Search by username...",
+    "addFriend": "Add Friend",
+    "pendingRequests": "Pending Requests",
+    "accept": "Accept",
+    "reject": "Decline",
+    "groupsTitle": "Private Arc Squads",
+    "createGroup": "Create Squad",
+    "joinGroup": "Join Squad",
+    "groupCode": "Enter Squad Code",
+    "avgCompletion": "Squad Avg Completion",
+    "groupStreak": "Squad Streak"
+  },
+  "share": {
+    "title": "Share Your Discipline",
+    "subtitle": "Generate a shareable progress badge for Instagram & WhatsApp.",
+    "downloadBadge": "Download Card",
+    "copyLink": "Copy Progress Link",
+    "copied": "Copied to clipboard!",
+    "daysOfDiscipline": "DAYS OF UNBROKEN DISCIPLINE"
+  },
+  "settings": {
+    "title": "Settings & Preferences",
+    "profile": "Profile",
+    "language": "Language",
+    "theme": "Theme",
+    "privacy": "Privacy Mode",
+    "notifications": "Notifications",
+    "save": "Save Changes",
+    "saved": "Saved successfully!"
+  }
+}

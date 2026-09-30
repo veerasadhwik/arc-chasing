@@ -1,18 +1,30 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useArc } from "@/lib/habits/ArcContext";
+import { useAuth } from "@/lib/auth/AuthContext";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useTheme } from "@/lib/theme/ThemeContext";
 import { LanguageCode } from "@/types/database";
-import { Sparkles, Globe, Moon, Sun, Flame, Award, Shield } from "lucide-react";
+import { formatLocalTime } from "@/lib/utils";
+import { Sparkles, Globe, Moon, Sun, Flame, Award, Shield, Clock } from "lucide-react";
 
 export function Header() {
   const { metrics, totalXp, levelInfo, arc } = useArc();
+  const { user } = useAuth();
   const { language, setLanguage, t } = useLanguage();
   const { theme, setTheme } = useTheme();
   const [langMenuOpen, setLangMenuOpen] = useState(false);
+  const [currentTime, setCurrentTime] = useState("");
+
+  useEffect(() => {
+    setCurrentTime(formatLocalTime());
+    const interval = setInterval(() => {
+      setCurrentTime(formatLocalTime());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const languages: { code: LanguageCode; label: string; flag: string }[] = [
     { code: "en", label: "English", flag: "🇺🇸" },
@@ -33,19 +45,40 @@ export function Header() {
               <div className="font-extrabold text-sm sm:text-base tracking-tight text-[#F5F7FA]">
                 WINTER ARC
               </div>
-              <div className="text-[10px] font-bold text-[#8D95A5] tracking-widest uppercase">
-                {arc.name || "90-Day Challenge"}
+              <div className="text-[10px] font-bold text-[#8D95A5] tracking-widest uppercase truncate max-w-[140px] sm:max-w-none">
+                {arc?.name || "90-Day Challenge"}
               </div>
             </div>
           </Link>
 
-          {/* Day X / Total Days Pill */}
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#151922] border border-white/[0.08] text-[#8ED8FF] text-xs font-bold">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#8ED8FF]" />
-            <span>
-              {t("dashboard.day")} {metrics.currentDay} / {metrics.totalDays}
-            </span>
-          </div>
+          {/* Dynamic Timing Pill or Create Arc CTA */}
+          {arc ? (
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#151922] border border-white/[0.08] text-[#8ED8FF] text-xs font-bold">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#8ED8FF]" />
+              <span>
+                {metrics.arcStatus === "upcoming"
+                  ? `Starts in ${metrics.daysUntilStart}d`
+                  : metrics.arcStatus === "completed"
+                  ? "Arc Completed 🏆"
+                  : `${t("dashboard.day")} ${metrics.currentDay} / ${metrics.totalDays}`}
+              </span>
+            </div>
+          ) : (
+            <Link
+              href="/onboarding"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#8ED8FF]/15 border border-[#8ED8FF]/30 text-[#8ED8FF] text-xs font-bold hover:bg-[#8ED8FF]/25 transition-colors"
+            >
+              <span>+ Create Arc</span>
+            </Link>
+          )}
+
+          {/* Live Local Clock */}
+          {currentTime && (
+            <div className="hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#151922] border border-white/[0.08] text-[#8D95A5] text-xs font-semibold">
+              <Clock className="w-3.5 h-3.5 text-[#8ED8FF]" />
+              <span>{currentTime}</span>
+            </div>
+          )}
         </div>
 
         {/* Center / Right Metrics & Actions */}

@@ -9,9 +9,42 @@ import { cn, formatDisplayDate } from "@/lib/utils";
 import { Calendar, CheckCircle2, ChevronRight, Flame } from "lucide-react";
 
 export function ChallengeCalendar() {
-  const { metrics, habits, arc } = useArc();
+  const { metrics, habits, arc, hasActiveArc, isLoading } = useArc();
   const { t } = useLanguage();
   const [selectedDay, setSelectedDay] = useState<DayMetric | null>(null);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-[40vh] flex flex-col items-center justify-center space-y-3">
+        <div className="w-8 h-8 rounded-full border-2 border-sky-400 border-t-transparent animate-spin" />
+        <p className="text-xs font-mono text-slate-400 tracking-wider uppercase">
+          Loading challenge calendar...
+        </p>
+      </div>
+    );
+  }
+
+  if (!hasActiveArc || !arc) {
+    return (
+      <div className="min-h-[50vh] flex flex-col items-center justify-center text-center px-4 py-12 max-w-md mx-auto space-y-5">
+        <div className="w-16 h-16 rounded-2xl bg-[#151922] border border-sky-500/20 flex items-center justify-center text-3xl shadow-xl">
+          📅
+        </div>
+        <div className="space-y-1.5">
+          <h3 className="text-2xl font-black text-white">Your Arc hasn&apos;t started yet.</h3>
+          <p className="text-xs text-slate-400">
+            Build your first Arc to generate your interactive daily discipline calendar.
+          </p>
+        </div>
+        <a
+          href="/onboarding"
+          className="px-6 py-3 rounded-xl bg-[#8ED8FF] hover:bg-[#a2e0ff] text-[#080A0F] font-black text-xs tracking-wide transition-all shadow-md shadow-[#8ED8FF]/20"
+        >
+          CREATE YOUR ARC
+        </a>
+      </div>
+    );
+  }
 
   const { calendarGrid, currentDay, totalDays, currentStreak, perfectDaysCount } = metrics;
 
@@ -25,7 +58,7 @@ export function ChallengeCalendar() {
             {t("calendar.title")}
           </h2>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            {t("calendar.subtitle")}
+            {formatDisplayDate(arc.start_date)} → {formatDisplayDate(arc.end_date)} • {totalDays} Days of Record
           </p>
         </div>
 

@@ -1,5 +1,5 @@
 import { Habit, HabitLog, Arc } from "@/types/database";
-import { formatDate, addDays, getTodayDateString, isHabitCompleted } from "@/lib/utils";
+import { formatDate, addDays, getTodayDateString, isHabitCompleted, getArcTiming } from "@/lib/utils";
 
 export interface DayMetric {
   dayNumber: number;
@@ -33,17 +33,49 @@ export interface ArcCalculatedStats {
   habitStats: Record<string, HabitStreakStats>;
   calendarGrid: DayMetric[];
   todayMetric: DayMetric;
+  arcStatus: "none" | "upcoming" | "active" | "completed";
+  daysUntilStart: number;
 }
 
 /**
  * Pure calculation engine deriving all stats from habit_logs (Source of Truth)
  */
 export function calculateArcMetrics(
-  arc: Arc,
+  arc: Arc | null | undefined,
   habits: Habit[],
   logs: HabitLog[],
   evaluationDate: string = getTodayDateString()
 ): ArcCalculatedStats {
+  const emptyTodayMetric: DayMetric = {
+    dayNumber: 0,
+    date: evaluationDate,
+    totalHabits: 0,
+    completedHabits: 0,
+    completionPercentage: 0,
+    perfectDay: false,
+    status: "future",
+    logs: {},
+  };
+
+  if (!arc) {
+    return {
+      currentDay: 0,
+      totalDays: 0,
+      overallCompletionRate: 0,
+      currentStreak: 0,
+      longestStreak: 0,
+      perfectDaysCount: 0,
+      totalHabitsCompleted: 0,
+      missedDaysCount: 0,
+      habitStats: {},
+      calendarGrid: [],
+      todayMetric: emptyTodayMetric,
+      arcStatus: "none",
+      daysUntilStart: 0,
+    };
+  }
+
+  const timing = getArcTiming(arc.start_date, arc.end_date, arc.duration_days, evaluationDate);
   const activeHabits = habits.filter((h) => h.is_active);
   const totalHabitsCount = activeHabits.length;
 
@@ -83,14 +115,13 @@ export function calculateArcMetrics(
   const evalDateTime = new Date(evaluationDate + "T00:00:00").getTime();
   const startDateTime = new Date(startDate + "T00:00:00").getTime();
 
-  let currentDay = Math.floor((evalDateTime - startDateTime) / (1000 * 60 * 60 * 24)) + 1;
-  currentDay = Math.max(1, Math.min(currentDay, duration));
+  const currentDay = timing.currentDay;
 
   for (let i = 0; i < duration; i++) {
     const dayDate = addDays(startDate, i);
     const dayDateTime = new Date(dayDate + "T00:00:00").getTime();
-    const isFuture = dayDateTime > evalDateTime;
-    const isPastOrToday = dayDateTime <= evalDateTime;
+    const isFuture = dayDateTime > evalDateTime || timing.status === "upcoming";
+    const isPastOrToday = dayDateTime <= evalDateTime && timing.status !== "upcoming";
 
     const dayLogs = logsByDate[dayDate] || {};
     let completedCount = 0;
@@ -145,7 +176,6 @@ export function calculateArcMetrics(
       }
 
       // Challenge streak: Day is considered successful if at least 1 habit completed or > 50%
-      // PRD / TRD: Completing daily target counts towards streak
       const daySuccessful = completedCount > 0;
       if (daySuccessful) {
         tempStreak++;
@@ -194,7 +224,7 @@ export function calculateArcMetrics(
     };
   });
 
-  const todayIndex = Math.min(currentDay - 1, calendarGrid.length - 1);
+  const todayIndex = currentDay > 0 ? Math.min(currentDay - 1, calendarGrid.length - 1) : 0;
   const todayMetric = calendarGrid[todayIndex] || {
     dayNumber: currentDay,
     date: evaluationDate,
@@ -202,7 +232,7 @@ export function calculateArcMetrics(
     completedHabits: 0,
     completionPercentage: 0,
     perfectDay: false,
-    status: "missed",
+    status: timing.status === "upcoming" ? "future" : "missed",
     logs: {},
   };
 
@@ -222,5 +252,7 @@ export function calculateArcMetrics(
     habitStats,
     calendarGrid,
     todayMetric,
+    arcStatus: timing.status,
+    daysUntilStart: timing.daysUntilStart,
   };
 }

@@ -85,3 +85,35 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(142, 216, 255, 0.4);
 }
+
+/* Auth Cinematic Keyframes */
+@keyframes authFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes ambientPulse {
+  0%, 100% {
+    opacity: 0.25;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(1.08);
+  }
+}
+
+.animate-auth-fade {
+  animation: authFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-ambient-glow {
+  animation: ambientPulse 8s ease-in-out infinite;
+}
+

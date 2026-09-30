@@ -7,9 +7,11 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { useAuth } from "@/lib/auth/AuthContext";
 import { Shield, Users, Flame, Plus, Copy, Check, TrendingUp } from "lucide-react";
 
 export function GroupsView() {
+  const { user } = useAuth();
   const [groups, setGroups] = useState<Group[]>(StorageRepository.getGroups());
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isJoinOpen, setIsJoinOpen] = useState(false);
@@ -24,7 +26,7 @@ export function GroupsView() {
     e.preventDefault();
     if (!newGroupName.trim()) return;
 
-    StorageRepository.createGroup(newGroupName.trim(), newGroupDesc.trim());
+    StorageRepository.createGroup(user?.id || "user-local", newGroupName.trim(), newGroupDesc.trim());
     setGroups(StorageRepository.getGroups());
     setIsCreateOpen(false);
     setNewGroupName("");

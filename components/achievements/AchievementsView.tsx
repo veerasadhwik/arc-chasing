@@ -5,13 +5,15 @@ import { useArc } from "@/lib/habits/ArcContext";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { Card } from "@/components/ui/Card";
 import { ProgressBar } from "@/components/ui/ProgressBar";
+import { useAuth } from "@/lib/auth/AuthContext";
 import { StorageRepository } from "@/lib/storage/repository";
 import { Trophy, Award, Sparkles, CheckCircle2, Lock, Flame } from "lucide-react";
 
 export function AchievementsView() {
   const { achievements, userAchievements, totalXp, levelInfo } = useArc();
+  const { user } = useAuth();
   const { t } = useLanguage();
-  const xpEvents = StorageRepository.getXPEvents();
+  const xpEvents = user ? StorageRepository.getUserXPEvents(user.id) : StorageRepository.getXPEvents();
 
   const unlockedIds = new Set(userAchievements.map((ua) => ua.achievement_id));
 

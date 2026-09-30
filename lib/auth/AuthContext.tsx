@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { Profile, LanguageCode } from "@/types/database";
 import { StorageRepository } from "@/lib/storage/repository";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
@@ -9,52 +9,129 @@ interface AuthContextType {
   user: Profile | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
-  signup: (username: string, email: string, pass: string, lang: LanguageCode) => Promise<{ success: boolean; error?: string }>;
+  login: (emailOrUser: string, pass: string) => Promise<{ success: boolean; error?: string; user?: Profile }>;
+  signup: (name: string, email: string, pass: string, lang: LanguageCode) => Promise<{ success: boolean; error?: string; user?: Profile }>;
   logout: () => Promise<void>;
-  updateProfile: (updates: Partial<Profile>) => void;
+  updateProfile: (updates: Partial<Profile>) => Promise<void>;
+  resetPassword: (email: string) => Promise<{ success: boolean; message: string }>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
-  isAuthenticated: true,
-  isLoading: false,
-  login: async () => ({ success: true }),
-  signup: async () => ({ success: true }),
+  isAuthenticated: false,
+  isLoading: true,
+  login: async () => ({ success: false }),
+  signup: async () => ({ success: false }),
   logout: async () => {},
-  updateProfile: () => {},
+  updateProfile: async () => {},
+  resetPassword: async () => ({ success: true, message: "" }),
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Initialize session on mount
   useEffect(() => {
     StorageRepository.initialize();
-    const profile = StorageRepository.getProfile();
-    setUser(profile);
-    setIsLoading(false);
+
+    if (isSupabaseConfigured && supabase) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) {
+          fetchSupabaseProfile(session.user.id).then((prof) => {
+            setUser(prof);
+            setIsLoading(false);
+          });
+        } else {
+          setUser(null);
+          setIsLoading(false);
+        }
+      });
+
+      const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (session?.user) {
+          const prof = await fetchSupabaseProfile(session.user.id);
+          setUser(prof);
+        } else {
+          setUser(null);
+        }
+        setIsLoading(false);
+      });
+
+      return () => {
+        authListener.subscription.unsubscribe();
+      };
+    } else {
+      // Offline / standalone client-database session
+      const sessionUser = StorageRepository.getSessionUser();
+      setUser(sessionUser);
+      setIsLoading(false);
+    }
   }, []);
 
-  const login = async (email: string, pass: string) => {
-    setIsLoading(true);
+  const fetchSupabaseProfile = async (userId: string): Promise<Profile | null> => {
     try {
-      if (isSupabaseConfigured && supabase) {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
-        if (error) throw error;
-      }
-      // Demo / client fallback
-      const profile = StorageRepository.getProfile();
-      setUser(profile);
-      setIsLoading(false);
-      return { success: true };
-    } catch (err: any) {
-      setIsLoading(false);
-      return { success: false, error: err.message || "Failed to sign in" };
+      if (!supabase) return null;
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .single();
+
+      if (error || !data) return null;
+      return data as Profile;
+    } catch {
+      return null;
     }
   };
 
-  const signup = async (username: string, email: string, pass: string, lang: LanguageCode) => {
+  const login = async (
+    emailOrUser: string,
+    pass: string
+  ): Promise<{ success: boolean; error?: string; user?: Profile }> => {
+    setIsLoading(true);
+    try {
+      if (isSupabaseConfigured && supabase) {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: emailOrUser,
+          password: pass,
+        });
+
+        if (error) {
+          setIsLoading(false);
+          return { success: false, error: "Those details don't match an account." };
+        }
+
+        if (data.user) {
+          const profile = await fetchSupabaseProfile(data.user.id);
+          setUser(profile);
+          setIsLoading(false);
+          return { success: true, user: profile || undefined };
+        }
+      }
+
+      // Standalone vault authentication
+      const res = StorageRepository.authenticateAccount(emailOrUser, pass);
+      if (!res.success || !res.user) {
+        setIsLoading(false);
+        return { success: false, error: res.error || "Those details don't match an account." };
+      }
+
+      setUser(res.user);
+      setIsLoading(false);
+      return { success: true, user: res.user };
+    } catch (err: any) {
+      setIsLoading(false);
+      return { success: false, error: "Those details don't match an account." };
+    }
+  };
+
+  const signup = async (
+    name: string,
+    email: string,
+    pass: string,
+    lang: LanguageCode
+  ): Promise<{ success: boolean; error?: string; user?: Profile }> => {
     setIsLoading(true);
     try {
       if (isSupabaseConfigured && supabase) {
@@ -62,37 +139,75 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email,
           password: pass,
           options: {
-            data: { username, language: lang },
+            data: {
+              username: name.trim().toLowerCase().replace(/\s+/g, "_"),
+              display_name: name.trim(),
+              language: lang,
+            },
           },
         });
-        if (error) throw error;
+
+        if (error) {
+          setIsLoading(false);
+          return { success: false, error: error.message || "Failed to create account" };
+        }
+
+        if (data.user) {
+          const profile = await fetchSupabaseProfile(data.user.id);
+          setUser(profile);
+          setIsLoading(false);
+          return { success: true, user: profile || undefined };
+        }
       }
 
-      const updated = StorageRepository.updateProfile({
-        username,
-        display_name: username,
-        language: lang,
-      });
-      setUser(updated);
+      // Standalone vault registration
+      const res = StorageRepository.registerAccount(name, email, pass, lang);
+      if (!res.success || !res.user) {
+        setIsLoading(false);
+        return { success: false, error: res.error || "Failed to create account" };
+      }
+
+      setUser(res.user);
       setIsLoading(false);
-      return { success: true };
+      return { success: true, user: res.user };
     } catch (err: any) {
       setIsLoading(false);
-      return { success: false, error: err.message || "Failed to create account" };
+      return { success: false, error: "We couldn't create your account right now. Please try again." };
     }
   };
 
   const logout = async () => {
-    if (isSupabaseConfigured && supabase) {
-      await supabase.auth.signOut();
+    setIsLoading(true);
+    try {
+      if (isSupabaseConfigured && supabase) {
+        await supabase.auth.signOut();
+      }
+      StorageRepository.clearSession();
+      setUser(null);
+    } finally {
+      setIsLoading(false);
     }
-    // In local demo, user remains Veera or can be reset
-    window.location.href = "/";
   };
 
-  const updateProfile = (updates: Partial<Profile>) => {
-    const updated = StorageRepository.updateProfile(updates);
-    setUser(updated);
+  const updateProfile = async (updates: Partial<Profile>) => {
+    if (!user) return;
+    if (isSupabaseConfigured && supabase) {
+      await supabase.from("profiles").update(updates).eq("id", user.id);
+    }
+    const updated = StorageRepository.updateProfile(user.id, updates);
+    if (updated) {
+      setUser(updated);
+    }
+  };
+
+  const resetPassword = async (email: string) => {
+    if (isSupabaseConfigured && supabase) {
+      await supabase.auth.resetPasswordForEmail(email);
+    }
+    return {
+      success: true,
+      message: "If an account matches that email, instructions have been sent.",
+    };
   };
 
   return (
@@ -105,6 +220,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signup,
         logout,
         updateProfile,
+        resetPassword,
       }}
     >
       {children}
@@ -115,3 +231,4 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   return useContext(AuthContext);
 }
+

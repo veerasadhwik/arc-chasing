@@ -3,12 +3,14 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { Arc, Habit, HabitLog, Achievement, UserAchievement, HabitType } from "@/types/database";
 import { StorageRepository } from "@/lib/storage/repository";
+import { useAuth } from "@/lib/auth/AuthContext";
 import { calculateArcMetrics, ArcCalculatedStats } from "@/lib/calculations/engine";
 import { getLevelProgress, getTodayDateString, addDays } from "@/lib/utils";
 import confetti from "canvas-confetti";
 
 interface ArcContextType {
-  arc: Arc;
+  arc: Arc | null;
+  hasActiveArc: boolean;
   habits: Habit[];
   logs: HabitLog[];
   metrics: ArcCalculatedStats;
@@ -22,7 +24,12 @@ interface ArcContextType {
   addHabit: (habit: Partial<Habit> & { name: string; habit_type: HabitType }) => void;
   updateHabit: (habit: Partial<Habit> & { id: string; name: string; habit_type: HabitType }) => void;
   deleteHabit: (habitId: string) => void;
-  createNewArc: (name: string, durationDays: number, startDate: string, habitsList: Array<Omit<Habit, "id" | "arc_id" | "created_at" | "updated_at">>) => void;
+  createNewArc: (
+    name: string,
+    durationDays: number,
+    startDate: string,
+    habitsList: Array<Omit<Habit, "id" | "arc_id" | "created_at" | "updated_at">>
+  ) => { arc: Arc; habits: Habit[] } | null;
   triggerConfetti: () => void;
   refresh: () => void;
 }
@@ -30,31 +37,51 @@ interface ArcContextType {
 const ArcContext = createContext<ArcContextType | null>(null);
 
 export function ArcProvider({ children }: { children: React.ReactNode }) {
-  const [arc, setArc] = useState<Arc>(StorageRepository.getArc());
+  const { user } = useAuth();
+
+  const [arc, setArc] = useState<Arc | null>(null);
   const [habits, setHabits] = useState<Habit[]>([]);
   const [logs, setLogs] = useState<HabitLog[]>([]);
-  const [totalXp, setTotalXp] = useState<number>(840);
+  const [totalXp, setTotalXp] = useState<number>(0);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [userAchievements, setUserAchievements] = useState<UserAchievement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const loadData = useCallback(() => {
     StorageRepository.initialize();
-    const currentArc = StorageRepository.getArc();
-    const currentHabits = StorageRepository.getHabits();
-    const currentLogs = StorageRepository.getHabitLogs();
-    const currentXp = StorageRepository.getTotalXP();
     const achs = StorageRepository.getAchievements();
-    const uAchs = StorageRepository.getUserAchievements();
-
-    setArc(currentArc);
-    setHabits(currentHabits);
-    setLogs(currentLogs);
-    setTotalXp(currentXp);
     setAchievements(achs);
+
+    if (!user) {
+      setArc(null);
+      setHabits([]);
+      setLogs([]);
+      setTotalXp(0);
+      setUserAchievements([]);
+      setIsLoading(false);
+      return;
+    }
+
+    const activeArc = StorageRepository.getActiveArc(user.id);
+    setArc(activeArc);
+
+    if (activeArc) {
+      const currentHabits = StorageRepository.getHabits(activeArc.id);
+      const userLogs = StorageRepository.getUserHabitLogs(user.id);
+      setHabits(currentHabits);
+      setLogs(userLogs);
+    } else {
+      setHabits([]);
+      setLogs([]);
+    }
+
+    const currentXp = StorageRepository.getUserXP(user.id);
+    const uAchs = StorageRepository.getUserAchievements(user.id);
+
+    setTotalXp(currentXp);
     setUserAchievements(uAchs);
     setIsLoading(false);
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     loadData();
@@ -66,10 +93,10 @@ export function ArcProvider({ children }: { children: React.ReactNode }) {
   const triggerConfetti = () => {
     try {
       confetti({
-        particleCount: 100,
+        particleCount: 80,
         spread: 70,
         origin: { y: 0.6 },
-        colors: ["#38bdf8", "#7dd3fc", "#e0f2fe", "#f59e0b", "#10b981"],
+        colors: ["#8ED8FF", "#38bdf8", "#10b981", "#f59e0b"],
       });
     } catch {
       // Ignore if canvas-confetti fails
@@ -77,14 +104,25 @@ export function ArcProvider({ children }: { children: React.ReactNode }) {
   };
 
   const toggleHabit = async (habitId: string, date: string = getTodayDateString()) => {
+    if (!user || !arc) return { xpAwarded: 0, isPerfectDay: false };
+
     const habit = habits.find((h) => h.id === habitId);
     if (!habit) return { xpAwarded: 0, isPerfectDay: false };
 
     const existingLog = logs.find((l) => l.habit_id === habitId && l.log_date === date);
     const newCompleted = !(existingLog?.completed ?? false);
-    const value = newCompleted && habit.target_value ? habit.target_value : (newCompleted ? 1 : 0);
+    const value =
+      newCompleted && habit.target_value ? habit.target_value : newCompleted ? 1 : 0;
 
-    const result = StorageRepository.logHabit(habitId, date, newCompleted, value);
+    const result = StorageRepository.logHabit(
+      user.id,
+      arc.id,
+      habitId,
+      date,
+      newCompleted,
+      value
+    );
+
     if (result.isPerfectDay) {
       triggerConfetti();
     }
@@ -93,14 +131,28 @@ export function ArcProvider({ children }: { children: React.ReactNode }) {
     return result;
   };
 
-  const setHabitValue = async (habitId: string, value: number, date: string = getTodayDateString()) => {
+  const setHabitValue = async (
+    habitId: string,
+    value: number,
+    date: string = getTodayDateString()
+  ) => {
+    if (!user || !arc) return { xpAwarded: 0, isPerfectDay: false };
+
     const habit = habits.find((h) => h.id === habitId);
     if (!habit) return { xpAwarded: 0, isPerfectDay: false };
 
     const target = habit.target_value ?? 1;
     const completed = value >= target;
 
-    const result = StorageRepository.logHabit(habitId, date, completed, value);
+    const result = StorageRepository.logHabit(
+      user.id,
+      arc.id,
+      habitId,
+      date,
+      completed,
+      value
+    );
+
     if (result.isPerfectDay) {
       triggerConfetti();
     }
@@ -110,17 +162,20 @@ export function ArcProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addHabit = (habitData: Partial<Habit> & { name: string; habit_type: HabitType }) => {
-    StorageRepository.addOrUpdateHabit(habitData);
+    if (!arc) return;
+    StorageRepository.addOrUpdateHabit(arc.id, habitData);
     loadData();
   };
 
   const updateHabit = (habitData: Partial<Habit> & { id: string; name: string; habit_type: HabitType }) => {
-    StorageRepository.addOrUpdateHabit(habitData);
+    if (!arc) return;
+    StorageRepository.addOrUpdateHabit(arc.id, habitData);
     loadData();
   };
 
   const deleteHabit = (habitId: string) => {
-    StorageRepository.deleteHabit(habitId);
+    if (!arc) return;
+    StorageRepository.deleteHabit(arc.id, habitId);
     loadData();
   };
 
@@ -130,41 +185,32 @@ export function ArcProvider({ children }: { children: React.ReactNode }) {
     startDate: string,
     habitsList: Array<Omit<Habit, "id" | "arc_id" | "created_at" | "updated_at">>
   ) => {
-    const newArc: Arc = {
-      id: `arc-${Date.now()}`,
-      user_id: StorageRepository.getProfile().id,
-      name,
-      duration_days: durationDays,
-      start_date: startDate,
-      end_date: addDays(startDate, durationDays),
-      status: "active",
-      privacy: "private",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
+    if (!user) return null;
 
-    const newHabits: Habit[] = habitsList.slice(0, 10).map((h, i) => ({
-      ...h,
-      id: `habit-${Date.now()}-${i}`,
-      arc_id: newArc.id,
-      sort_order: i + 1,
-      is_active: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }));
-
-    StorageRepository.saveArc(newArc);
-    StorageRepository.saveHabits(newHabits);
-    StorageRepository.saveHabitLogs([]); // Fresh start for new challenge!
+    const calculatedEndDate = addDays(startDate, durationDays - 1);
+    const result = StorageRepository.createArc(
+      user.id,
+      {
+        name,
+        duration_days: durationDays,
+        start_date: startDate,
+        end_date: calculatedEndDate,
+        status: "active",
+        privacy: "private",
+      },
+      habitsList
+    );
 
     triggerConfetti();
     loadData();
+    return result;
   };
 
   return (
     <ArcContext.Provider
       value={{
         arc,
+        hasActiveArc: !!arc,
         habits,
         logs,
         metrics,
@@ -195,3 +241,4 @@ export function useArc() {
   }
   return ctx;
 }
+

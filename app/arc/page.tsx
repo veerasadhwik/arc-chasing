@@ -23,15 +23,53 @@ import {
 } from "lucide-react";
 
 export default function ArcPage() {
-  const { arc, habits, metrics, addHabit, updateHabit, deleteHabit } = useArc();
+  const { arc, hasActiveArc, habits, metrics, addHabit, updateHabit, deleteHabit, isLoading } = useArc();
   const { t } = useLanguage();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
 
+  if (isLoading) {
+    return (
+      <div className="min-h-[50vh] flex flex-col items-center justify-center space-y-3">
+        <div className="w-8 h-8 rounded-full border-2 border-sky-400 border-t-transparent animate-spin" />
+        <p className="text-xs font-mono text-slate-400 tracking-wider uppercase">
+          Loading your Arc roadmap...
+        </p>
+      </div>
+    );
+  }
+
+  if (!hasActiveArc || !arc) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4 py-12 max-w-xl mx-auto space-y-6">
+        <div className="w-20 h-20 rounded-3xl bg-[#151922] border border-sky-500/20 flex items-center justify-center text-4xl shadow-2xl">
+          🗺️
+        </div>
+        <div className="space-y-2">
+          <span className="text-xs font-black uppercase tracking-widest text-[#8ED8FF] px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/20">
+            NO ACTIVE ARC
+          </span>
+          <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
+            Your Arc hasn&apos;t started yet.
+          </h1>
+          <p className="text-sm text-slate-400">
+            Build your first Arc to unlock your transformation timeline and milestone tracking.
+          </p>
+        </div>
+        <Link
+          href="/onboarding"
+          className="px-8 py-3.5 rounded-2xl bg-[#8ED8FF] hover:bg-[#a2e0ff] text-[#080A0F] font-black text-sm tracking-wide transition-all shadow-lg shadow-[#8ED8FF]/20"
+        >
+          CREATE YOUR ARC
+        </Link>
+      </div>
+    );
+  }
+
   const activeHabits = habits.filter((h) => h.is_active);
-  const { currentDay, totalDays, currentStreak } = metrics;
-  const progressPercent = Math.min(100, Math.round((currentDay / totalDays) * 100));
+  const { currentDay, totalDays, currentStreak, arcStatus, daysUntilStart } = metrics;
+  const progressPercent = totalDays > 0 ? Math.min(100, Math.round((currentDay / totalDays) * 100)) : 0;
 
   const handleOpenAdd = () => {
     setEditingHabit(null);

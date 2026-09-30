@@ -160,8 +160,8 @@ export function HabitCard({
         </div>
       </div>
 
-      {/* Steppers for Number & Duration types: [ − ] value [ + ] */}
-      {(habit.habit_type === "number" || habit.habit_type === "duration") && (
+      {/* Number Controls: Progress bar, Steppers, Direct Input */}
+      {habit.habit_type === "number" && (
         <div className="mt-3 pt-3 border-t border-white/[0.06] flex flex-col gap-2">
           {/* Progress Bar */}
           <div className="w-full bg-[#10131A] rounded-full h-1.5 overflow-hidden">
@@ -174,15 +174,10 @@ export function HabitCard({
             />
           </div>
 
-          {/* Stepper Controls: [ − ] value [ + ] */}
           <div className="flex items-center justify-between text-xs pt-0.5">
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
               <button
-                onClick={() =>
-                  onSetValue(
-                    Math.max(0, currentVal - (habit.habit_type === "number" ? 1000 : 15))
-                  )
-                }
+                onClick={() => onSetValue(Math.max(0, currentVal - (targetVal >= 1000 ? 500 : 1)))}
                 className="w-7 h-7 rounded-lg bg-[#10131A] hover:bg-white/[0.05] border border-white/[0.08] text-[#8D95A5] hover:text-[#F5F7FA] font-bold flex items-center justify-center transition-colors"
                 title="Decrease"
               >
@@ -195,7 +190,8 @@ export function HabitCard({
 
               <button
                 onClick={() => {
-                  const nextVal = currentVal + (habit.habit_type === "number" ? 1000 : 15);
+                  const step = targetVal >= 1000 ? 500 : 1;
+                  const nextVal = currentVal + step;
                   if (nextVal >= targetVal && !completed) {
                     setShowXpBadge(true);
                     setTimeout(() => setShowXpBadge(false), 1200);
@@ -218,7 +214,7 @@ export function HabitCard({
                 }}
                 className="px-2 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-[11px] font-bold text-[#8ED8FF] transition-colors"
               >
-                Max
+                Hit Target
               </button>
             </div>
 
@@ -251,6 +247,162 @@ export function HabitCard({
               </form>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Duration Controls: Progress bar, +15m / +30m / +45m quick increment buttons */}
+      {habit.habit_type === "duration" && (
+        <div className="mt-3 pt-3 border-t border-white/[0.06] flex flex-col gap-2">
+          {/* Progress Bar */}
+          <div className="w-full bg-[#10131A] rounded-full h-1.5 overflow-hidden">
+            <div
+              className={cn(
+                "h-full rounded-full transition-all duration-300",
+                completed ? "bg-[#8ED8FF]" : "bg-[#8ED8FF]/70"
+              )}
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+
+          <div className="flex items-center justify-between text-xs pt-0.5 flex-wrap gap-2">
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => onSetValue(Math.max(0, currentVal - 15))}
+                className="w-7 h-7 rounded-lg bg-[#10131A] hover:bg-white/[0.05] border border-white/[0.08] text-[#8D95A5] hover:text-[#F5F7FA] font-bold flex items-center justify-center transition-colors"
+                title="-15m"
+              >
+                <Minus className="w-3 h-3" />
+              </button>
+
+              <span className="px-2 py-1 rounded-lg bg-[#10131A] border border-white/[0.06] text-xs font-mono font-bold text-[#F5F7FA]">
+                {currentVal}m
+              </span>
+
+              {[15, 30].map((inc) => (
+                <button
+                  key={inc}
+                  onClick={() => {
+                    const nextVal = currentVal + inc;
+                    if (nextVal >= targetVal && !completed) {
+                      setShowXpBadge(true);
+                      setTimeout(() => setShowXpBadge(false), 1200);
+                    }
+                    onSetValue(nextVal);
+                  }}
+                  className="px-2 py-1 rounded-lg bg-[#10131A] hover:bg-white/[0.06] border border-white/[0.08] text-[11px] font-bold text-[#8ED8FF] transition-colors"
+                >
+                  +{inc}m
+                </button>
+              ))}
+
+              <button
+                onClick={() => {
+                  if (!completed) {
+                    setShowXpBadge(true);
+                    setTimeout(() => setShowXpBadge(false), 1200);
+                  }
+                  onSetValue(targetVal);
+                }}
+                className="px-2 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-[11px] font-bold text-[#8ED8FF] transition-colors"
+              >
+                Target
+              </button>
+            </div>
+
+            {/* Custom value inline */}
+            {!isEditingValue ? (
+              <button
+                onClick={() => {
+                  setTempValue(String(currentVal));
+                  setIsEditingValue(true);
+                }}
+                className="text-[11px] text-[#8D95A5] hover:text-[#8ED8FF] font-medium"
+              >
+                Edit
+              </button>
+            ) : (
+              <form onSubmit={handleValueSubmit} className="flex items-center gap-1">
+                <input
+                  type="number"
+                  value={tempValue}
+                  onChange={(e) => setTempValue(e.target.value)}
+                  className="w-16 px-1.5 py-0.5 rounded bg-[#10131A] border border-[#8ED8FF]/40 text-[#F5F7FA] text-xs outline-none"
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  className="px-2 py-0.5 rounded bg-[#8ED8FF] text-[#080A0F] font-bold text-xs"
+                >
+                  Set
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Percentage Controls: Progress bar, Presets (25%, 50%, 75%, 100%) */}
+      {habit.habit_type === "percentage" && (
+        <div className="mt-3 pt-3 border-t border-white/[0.06] flex flex-col gap-2">
+          {/* Progress Bar */}
+          <div className="w-full bg-[#10131A] rounded-full h-1.5 overflow-hidden">
+            <div
+              className={cn(
+                "h-full rounded-full transition-all duration-300",
+                completed ? "bg-[#8ED8FF]" : "bg-[#8ED8FF]/70"
+              )}
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+
+          <div className="flex items-center justify-between text-xs pt-0.5">
+            <div className="flex items-center gap-1">
+              {[25, 50, 75, 100].map((pct) => (
+                <button
+                  key={pct}
+                  onClick={() => {
+                    if (pct >= targetVal && !completed) {
+                      setShowXpBadge(true);
+                      setTimeout(() => setShowXpBadge(false), 1200);
+                    }
+                    onSetValue(pct);
+                  }}
+                  className={cn(
+                    "px-2 py-0.5 rounded-lg border text-[11px] font-bold transition-all",
+                    currentVal >= pct
+                      ? "bg-[#8ED8FF]/20 text-[#8ED8FF] border-[#8ED8FF]/30"
+                      : "bg-[#10131A] text-slate-400 border-white/[0.06] hover:text-white"
+                  )}
+                >
+                  {pct}%
+                </button>
+              ))}
+            </div>
+
+            <span className="font-mono text-xs font-bold text-[#8ED8FF]">
+              {currentVal}%
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Time Controls: Target Time status and verification */}
+      {habit.habit_type === "time" && (
+        <div className="mt-3 pt-3 border-t border-white/[0.06] flex items-center justify-between text-xs">
+          <div className="text-[11px] text-slate-400">
+            Target schedule: <strong className="text-slate-200">{habit.target_value ? `${habit.target_value}:00` : "On schedule"} {habit.target_unit || ""}</strong>
+          </div>
+          <button
+            onClick={handleToggleClick}
+            className={cn(
+              "px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1",
+              completed
+                ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20"
+                : "bg-white/[0.04] text-slate-300 hover:text-white border border-white/[0.08]"
+            )}
+          >
+            {completed ? "✓ Met on Time" : "Mark Met on Time"}
+          </button>
         </div>
       )}
 

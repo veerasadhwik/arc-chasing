@@ -3,6 +3,8 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { useAuth } from "@/lib/auth/AuthContext";
+import { useArc } from "@/lib/habits/ArcContext";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import {
@@ -19,6 +21,8 @@ import {
 
 export default function LandingPage() {
   const { t } = useLanguage();
+  const { isAuthenticated } = useAuth();
+  const { hasActiveArc } = useArc();
 
   // Interactive sample card state for the floating hero preview
   const [sampleHabits, setSampleHabits] = useState([
@@ -38,7 +42,43 @@ export default function LandingPage() {
   const sampleScore = Math.round((sampleCompletedCount / sampleHabits.length) * 100);
 
   return (
-    <div className="space-y-20 py-6 sm:py-16 max-w-6xl mx-auto">
+    <div className="space-y-16 py-4 sm:py-8 max-w-6xl mx-auto px-4">
+      {/* Top Navigation Bar */}
+      <nav className="flex items-center justify-between py-4 border-b border-white/[0.08]">
+        <Link href="/" className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl bg-[#151922] border border-[#8ED8FF]/30 flex items-center justify-center text-lg shadow-sm">
+            ❄️
+          </div>
+          <span className="font-black text-lg text-[#F5F7FA] tracking-tight">WINTER ARC</span>
+        </Link>
+
+        <div className="flex items-center gap-2.5">
+          {isAuthenticated ? (
+            <Link
+              href="/dashboard"
+              className="px-5 py-2 rounded-xl bg-[#8ED8FF] hover:bg-[#a2e0ff] text-[#080A0F] font-black text-xs uppercase tracking-wider transition-all"
+            >
+              Dashboard
+            </Link>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="px-4 py-2 rounded-xl text-slate-300 hover:text-white font-bold text-xs uppercase tracking-wider transition-all"
+              >
+                Log In
+              </Link>
+              <Link
+                href="/signup"
+                className="px-5 py-2 rounded-xl bg-[#8ED8FF] hover:bg-[#a2e0ff] text-[#080A0F] font-black text-xs uppercase tracking-wider transition-all shadow-md shadow-[#8ED8FF]/20"
+              >
+                Start Arc
+              </Link>
+            </>
+          )}
+        </div>
+      </nav>
+
       {/* Hero Section */}
       <section className="relative pt-4 sm:pt-10 pb-8 flex flex-col lg:flex-row items-center justify-between gap-12">
         {/* Left Column: Huge Commanding Typography */}
@@ -50,41 +90,52 @@ export default function LandingPage() {
 
           <div className="space-y-1">
             <h1 className="text-5xl sm:text-7xl lg:text-8xl font-black text-[#F5F7FA] tracking-tighter leading-[0.95] uppercase">
-              BUILD YOUR
+              WINTER ARC
               <br />
-              <span className="text-[#8ED8FF]">ARC.</span>
+              <span className="text-[#8ED8FF]">90 DAYS.</span>
             </h1>
             <div className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#F5F7FA] tracking-tight uppercase pt-2">
-              BECOME YOUR NEXT VERSION.
+              ONE VERSION BETTER.
             </div>
           </div>
 
-          <p className="text-sm sm:text-base text-[#8D95A5] max-w-lg mx-auto lg:mx-0 font-medium leading-relaxed">
-            A 90-day challenge for your habits, discipline and personal growth.
-            Don't just track your habits. Build your arc.
-          </p>
+          <div className="space-y-1 text-sm sm:text-base text-[#8D95A5] max-w-lg mx-auto lg:mx-0 font-medium leading-relaxed">
+            <p className="text-[#F5F7FA] font-semibold">Build your own challenge. Build your habits. Build your consistency.</p>
+            <p>
+              A structured 90-day challenge for your habits, discipline, and personal growth.
+              Don't just track your habits. Build your arc.
+            </p>
+          </div>
 
           {/* Action CTAs */}
           <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 pt-2">
-            <Link href="/onboarding" className="w-full sm:w-auto">
+            <Link href={isAuthenticated ? (hasActiveArc ? "/dashboard" : "/onboarding") : "/login"} className="w-full sm:w-auto">
               <Button size="lg" variant="primary" className="w-full sm:w-auto px-8 text-sm">
-                <span>START MY ARC ❄</span>
+                <span>START YOUR ARC ❄</span>
                 <ArrowRight className="w-4 h-4 ml-1" />
               </Button>
             </Link>
 
-            <Link href="/dashboard" className="w-full sm:w-auto">
-              <Button size="lg" variant="secondary" className="w-full sm:w-auto px-6 text-sm">
-                <span>See how it works</span>
-              </Button>
-            </Link>
+            {isAuthenticated ? (
+              <Link href="/dashboard" className="w-full sm:w-auto">
+                <Button size="lg" variant="secondary" className="w-full sm:w-auto px-6 text-sm">
+                  <span>DASHBOARD</span>
+                </Button>
+              </Link>
+            ) : (
+              <Link href="/login" className="w-full sm:w-auto">
+                <Button size="lg" variant="secondary" className="w-full sm:w-auto px-6 text-sm">
+                  <span>LOGIN</span>
+                </Button>
+              </Link>
+            )}
           </div>
 
           {/* Quick Subtext Features */}
           <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 pt-4 text-xs font-medium text-[#8D95A5]">
             <span className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-[#8ED8FF]" />
-              Structured 90-Day Challenge
+              Personalized Challenge Engine
             </span>
             <span className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
@@ -92,7 +143,7 @@ export default function LandingPage() {
             </span>
             <span className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-              Unbroken Streak Engine
+              Unbroken Streak Tracking
             </span>
           </div>
         </div>

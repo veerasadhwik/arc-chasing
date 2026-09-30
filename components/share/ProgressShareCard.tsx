@@ -61,7 +61,7 @@ export function ProgressShareCard() {
           </div>
 
           <div className="text-xs font-black tracking-widest text-sky-400 uppercase">
-            {arc.name.toUpperCase()}
+            {(arc?.name || "WINTER ARC").toUpperCase()}
           </div>
 
           <div className="text-4xl sm:text-5xl font-black text-white tracking-tight mt-1">

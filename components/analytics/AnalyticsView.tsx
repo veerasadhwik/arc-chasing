@@ -8,8 +8,41 @@ import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Flame, Trophy, CheckCircle, XCircle, TrendingUp, BarChart2, Calendar } from "lucide-react";
 
 export function AnalyticsView() {
-  const { metrics, habits, totalXp, levelInfo } = useArc();
+  const { metrics, habits, arc, hasActiveArc, totalXp, levelInfo, isLoading } = useArc();
   const { t } = useLanguage();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-[40vh] flex flex-col items-center justify-center space-y-3">
+        <div className="w-8 h-8 rounded-full border-2 border-sky-400 border-t-transparent animate-spin" />
+        <p className="text-xs font-mono text-slate-400 tracking-wider uppercase">
+          Compiling performance analytics...
+        </p>
+      </div>
+    );
+  }
+
+  if (!hasActiveArc || !arc) {
+    return (
+      <div className="min-h-[50vh] flex flex-col items-center justify-center text-center px-4 py-12 max-w-md mx-auto space-y-5">
+        <div className="w-16 h-16 rounded-2xl bg-[#151922] border border-sky-500/20 flex items-center justify-center text-3xl shadow-xl">
+          📊
+        </div>
+        <div className="space-y-1.5">
+          <h3 className="text-2xl font-black text-white">Your first day is waiting.</h3>
+          <p className="text-xs text-slate-400">
+            Build your Arc and complete your first discipline to unlock deep performance analytics.
+          </p>
+        </div>
+        <a
+          href="/onboarding"
+          className="px-6 py-3 rounded-xl bg-[#8ED8FF] hover:bg-[#a2e0ff] text-[#080A0F] font-black text-xs tracking-wide transition-all shadow-md shadow-[#8ED8FF]/20"
+        >
+          CREATE YOUR ARC
+        </a>
+      </div>
+    );
+  }
 
   const {
     currentStreak,
@@ -18,6 +51,7 @@ export function AnalyticsView() {
     overallCompletionRate,
     currentDay,
     totalDays,
+    totalHabitsCompleted,
     missedDaysCount,
     habitStats,
     calendarGrid,
@@ -30,6 +64,14 @@ export function AnalyticsView() {
 
   return (
     <div className="space-y-6">
+      {/* Day 1 Waiting Banner (If no habits completed yet) */}
+      {totalHabitsCompleted === 0 && (
+        <div className="p-4 rounded-2xl bg-sky-500/10 border border-sky-500/20 flex items-center gap-3 text-sky-200 text-xs font-medium">
+          <span className="text-xl">⚡</span>
+          <span>Your first day is waiting. Complete today&apos;s discipline on the dashboard to begin your streak and record your metrics.</span>
+        </div>
+      )}
+
       {/* Overview Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Completion Rate */}

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, Compass, CalendarDays, Users, Settings } from "lucide-react";
+import { CheckCircle2, Compass, CalendarDays, Users, User, Settings } from "lucide-react";
 
 export function MobileNav() {
   const pathname = usePathname();
@@ -16,7 +16,7 @@ export function MobileNav() {
     { label: t("nav.arc"), href: "/arc", icon: Compass },
     { label: t("nav.calendar"), href: "/calendar", icon: CalendarDays },
     { label: t("nav.friends"), href: "/friends", icon: Users },
-    { label: t("nav.settings"), href: "/settings", icon: Settings },
+    { label: t("nav.profile"), href: "/profile", icon: User },
   ];
 
   return (

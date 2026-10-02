@@ -33,6 +33,7 @@ export function Sidebar() {
     { label: t("nav.achievements"), href: "/achievements", icon: Trophy },
     { label: t("nav.friends"), href: "/friends", icon: Users },
     { label: t("nav.groups"), href: "/groups", icon: Shield },
+    { label: t("nav.profile"), href: "/profile", icon: User },
     { label: t("nav.share"), href: "/share", icon: Share2 },
     { label: t("nav.settings"), href: "/settings", icon: Settings },
   ];
@@ -73,7 +74,7 @@ export function Sidebar() {
       {/* User Profile & Logout */}
       <div className="pt-3 border-t border-white/[0.08] mt-auto space-y-1.5">
         <Link
-          href="/settings"
+          href="/profile"
           className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-white/[0.04] transition-colors group"
         >
           <div className="w-8 h-8 rounded-full bg-[#151922] border border-white/[0.1] flex items-center justify-center text-xs font-bold text-[#8ED8FF] overflow-hidden">

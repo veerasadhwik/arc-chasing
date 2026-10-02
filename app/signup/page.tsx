@@ -92,8 +92,8 @@ export default function SignupPage() {
             }`}
           >
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#151922] border border-white/[0.08] text-[#8ED8FF] text-[11px] font-bold tracking-widest uppercase mb-2 shadow-inner">
-              <span className="text-xs">❄️</span>
-              <span>WINTER ARC</span>
+              <span className="text-xs">⚡</span>
+              <span>ARC-CHASER</span>
             </div>
             <h1 className="text-3xl sm:text-4xl font-black text-[#F5F7FA] tracking-tight uppercase">
               CREATE YOUR ACCOUNT
@@ -106,7 +106,7 @@ export default function SignupPage() {
             }`}
           >
             <p className="text-xs sm:text-sm text-[#8D95A5] font-medium">
-              “Your Arc starts here.”
+              “Chase Your Arc. Build Your Future.”
             </p>
           </div>
         </div>

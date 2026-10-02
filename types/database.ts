@@ -110,6 +110,9 @@ export interface XPEvent {
   created_at: string;
 }
 
+export type BadgeRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'mythic';
+export type BadgeCategory = 'streak' | 'arc' | 'performance' | 'discipline' | 'recovery' | 'secret';
+
 export interface Achievement {
   id: string;
   code: string;
@@ -119,14 +122,160 @@ export interface Achievement {
   requirement_type: string;
   requirement_value: number;
   xp_reward: number;
+  category?: BadgeCategory;
+  rarity?: BadgeRarity;
+  is_secret?: boolean;
   created_at: string;
 }
+
+export type Badge = Achievement;
 
 export interface UserAchievement {
   user_id: string;
   achievement_id: string;
   unlocked_at: string;
   achievement?: Achievement;
+}
+
+export type FriendRequestStatus = 'pending' | 'accepted' | 'declined' | 'cancelled';
+export type FriendshipRelationState =
+  | 'NOT_CONNECTED'
+  | 'REQUEST_SENT'
+  | 'REQUEST_RECEIVED'
+  | 'FRIENDS'
+  | 'BLOCKED';
+
+export interface FriendRequest {
+  id: string;
+  sender_id: string;
+  receiver_id: string;
+  status: FriendRequestStatus;
+  created_at: string;
+  updated_at: string;
+  sender_profile?: Profile;
+  receiver_profile?: Profile;
+}
+
+export interface DirectMessage {
+  id: string;
+  sender_id: string;
+  receiver_id: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface GroupMessage {
+  id: string;
+  group_id: string;
+  sender_id: string;
+  sender_name: string;
+  sender_avatar?: string | null;
+  message: string;
+  created_at: string;
+}
+
+export type NotificationType =
+  | 'friend_request'
+  | 'friend_accepted'
+  | 'direct_message'
+  | 'badge_unlocked'
+  | 'level_up'
+  | 'streak_milestone'
+  | 'system';
+
+export interface AppNotification {
+  id: string;
+  user_id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  is_read: boolean;
+  link_url?: string;
+  data?: Record<string, any>;
+  created_at: string;
+}
+
+export interface Title {
+  id: string;
+  code: string;
+  name: string;
+  description: string;
+  category: string;
+  rarity: BadgeRarity;
+  required_level?: number;
+  required_streak?: number;
+  required_achievement_code?: string;
+}
+
+export type QuestFrequency = 'daily' | 'weekly';
+export type QuestActionType =
+  | 'complete_habits'
+  | 'perfect_day'
+  | 'log_early'
+  | 'send_friend_request'
+  | 'cheer_group'
+  | 'streak_day';
+
+export interface Quest {
+  id: string;
+  title: string;
+  description: string;
+  frequency: QuestFrequency;
+  xp_reward: number;
+  target_count: number;
+  action_type: QuestActionType;
+}
+
+export interface UserQuestProgress {
+  user_id: string;
+  quest_id: string;
+  current_count: number;
+  is_completed: boolean;
+  is_claimed: boolean;
+  period_key: string;
+}
+
+export type PlayerClassType =
+  | 'Iron Monk'
+  | 'Arc Vanguard'
+  | 'Frost Sage'
+  | 'Shadow Striker'
+  | 'Titan Builder';
+
+export interface PlayerProfileStats {
+  user_id: string;
+  player_class: PlayerClassType;
+  equipped_title_id: string | null;
+  profile_visibility: 'public' | 'friends' | 'private';
+  friend_request_permission: 'everyone' | 'friends_of_friends' | 'none';
+  message_permission: 'everyone' | 'friends_only' | 'none';
+  blocked_user_ids: string[];
+}
+
+export interface ArcHistoryStamp {
+  id: string;
+  user_id: string;
+  arc_id: string;
+  arc_name: string;
+  duration_days: number;
+  start_date: string;
+  end_date: string;
+  completion_rate: number;
+  total_habits_completed: number;
+  perfect_days: number;
+  highest_streak: number;
+  stamp_title: string;
+  stamped_at: string;
+}
+
+export interface UserReport {
+  id: string;
+  reporter_id: string;
+  reported_user_id: string;
+  reason: string;
+  details?: string;
+  created_at: string;
 }
 
 export interface Friendship {

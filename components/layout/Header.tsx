@@ -9,6 +9,7 @@ import { useTheme } from "@/lib/theme/ThemeContext";
 import { LanguageCode } from "@/types/database";
 import { formatLocalTime } from "@/lib/utils";
 import { Sparkles, Globe, Moon, Sun, Flame, Award, Shield, Clock } from "lucide-react";
+import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 
 export function Header() {
   const { metrics, totalXp, levelInfo, arc } = useArc();
@@ -43,10 +44,10 @@ export function Header() {
             </div>
             <div>
               <div className="font-extrabold text-sm sm:text-base tracking-tight text-[#F5F7FA]">
-                WINTER ARC
+                ARC-CHASER
               </div>
               <div className="text-[10px] font-bold text-[#8D95A5] tracking-widest uppercase truncate max-w-[140px] sm:max-w-none">
-                {arc?.name || "90-Day Challenge"}
+                {arc?.name || "Chase Your Arc"}
               </div>
             </div>
           </Link>
@@ -173,6 +174,9 @@ export function Header() {
               <Moon className="w-4 h-4 text-[#8ED8FF]" />
             )}
           </button>
+
+          {/* Real Notification Center */}
+          <NotificationCenter />
 
           {/* Share CTA */}
           <Link

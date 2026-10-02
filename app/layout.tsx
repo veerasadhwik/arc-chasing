@@ -7,9 +7,9 @@ import { ArcProvider } from "@/lib/habits/ArcContext";
 import { AppShell } from "@/components/layout/AppShell";
 
 export const metadata: Metadata = {
-  title: "Winter Arc — 90 Days. One Version Better.",
+  title: "Arc-Chaser — Chase Your Arc. Build Your Future.",
   description:
-    "Don't just track your habits. Build your arc. Customizable 90-day challenge and discipline platform.",
+    "Build, track, and conquer your personal Arcs. Customizable challenge and discipline platform for personal transformation.",
 };
 
 export default function RootLayout({

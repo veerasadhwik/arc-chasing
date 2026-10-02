@@ -6,6 +6,7 @@ import { useArc } from "@/lib/habits/ArcContext";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { DailyScoreCard } from "@/components/dashboard/DailyScoreCard";
 import { AiInsightCard } from "@/components/dashboard/AiInsightCard";
+import { QuestBoard } from "@/components/gamification/QuestBoard";
 import { HabitCard } from "@/components/habits/HabitCard";
 import { HabitFormModal } from "@/components/habits/HabitFormModal";
 import { Modal } from "@/components/ui/Modal";
@@ -197,6 +198,9 @@ export default function DashboardPage() {
 
       {/* AI Coach Pattern Analysis Banner */}
       <AiInsightCard />
+
+      {/* Daily & Weekly Discipline Quests */}
+      <QuestBoard />
 
       {/* Active Disciplines List */}
       <div className="space-y-4">

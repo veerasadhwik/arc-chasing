@@ -49,7 +49,7 @@ export default function LandingPage() {
           <div className="w-9 h-9 rounded-xl bg-[#151922] border border-[#8ED8FF]/30 flex items-center justify-center text-lg shadow-sm">
             ❄️
           </div>
-          <span className="font-black text-lg text-[#F5F7FA] tracking-tight">WINTER ARC</span>
+          <span className="font-black text-lg text-[#F5F7FA] tracking-tight">ARC-CHASER</span>
         </Link>
 
         <div className="flex items-center gap-2.5">
@@ -84,26 +84,26 @@ export default function LandingPage() {
         {/* Left Column: Huge Commanding Typography */}
         <div className="flex-1 space-y-6 text-center lg:text-left">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#151922] border border-white/[0.08] text-[#8ED8FF] text-xs font-bold tracking-widest uppercase">
-            <span>❄️</span>
-            <span>90 Days. One Version Better.</span>
+            <span>⚡</span>
+            <span>Chase Your Arc. Build Your Future.</span>
           </div>
 
           <div className="space-y-1">
             <h1 className="text-5xl sm:text-7xl lg:text-8xl font-black text-[#F5F7FA] tracking-tighter leading-[0.95] uppercase">
-              WINTER ARC
+              ARC-CHASER
               <br />
-              <span className="text-[#8ED8FF]">90 DAYS.</span>
+              <span className="text-[#8ED8FF]">CHASE YOUR ARC.</span>
             </h1>
             <div className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#F5F7FA] tracking-tight uppercase pt-2">
-              ONE VERSION BETTER.
+              BUILD YOUR FUTURE.
             </div>
           </div>
 
           <div className="space-y-1 text-sm sm:text-base text-[#8D95A5] max-w-lg mx-auto lg:mx-0 font-medium leading-relaxed">
-            <p className="text-[#F5F7FA] font-semibold">Build your own challenge. Build your habits. Build your consistency.</p>
+            <p className="text-[#F5F7FA] font-semibold">Build your challenge. Build your habits. Build your consistency.</p>
             <p>
-              A structured 90-day challenge for your habits, discipline, and personal growth.
-              Don't just track your habits. Build your arc.
+              A structured personal transformation platform for your habits, discipline, and personal growth.
+              Whether it's a 90-day Winter Arc, Study Arc, Fitness Arc, or Custom Arc — build and conquer your arc.
             </p>
           </div>
 
@@ -111,7 +111,7 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 pt-2">
             <Link href={isAuthenticated ? (hasActiveArc ? "/dashboard" : "/onboarding") : "/login"} className="w-full sm:w-auto">
               <Button size="lg" variant="primary" className="w-full sm:w-auto px-8 text-sm">
-                <span>START YOUR ARC ❄</span>
+                <span>CHASE YOUR ARC ❄</span>
                 <ArrowRight className="w-4 h-4 ml-1" />
               </Button>
             </Link>

@@ -10,9 +10,29 @@ import {
   HabitType,
   LanguageCode,
   PrivacySetting,
+  FriendRequest,
+  FriendshipRelationState,
+  DirectMessage,
+  GroupMessage,
+  AppNotification,
+  NotificationType,
+  Title,
+  Quest,
+  QuestActionType,
+  PlayerClassType,
+  PlayerProfileStats,
+  ArcHistoryStamp,
+  UserReport,
 } from "@/types/database";
-import { CHALLENGE_TEMPLATES, SEED_ACHIEVEMENTS, SEED_FRIENDS, SEED_GROUPS } from "./mockData";
-import { getTodayDateString, isHabitCompleted, getBrowserTimezone } from "@/lib/utils";
+import {
+  CHALLENGE_TEMPLATES,
+  SEED_ACHIEVEMENTS,
+  SEED_FRIENDS,
+  SEED_GROUPS,
+  SEED_TITLES,
+  SEED_QUESTS,
+} from "./mockData";
+import { getTodayDateString, isHabitCompleted, getBrowserTimezone, getLevelProgress } from "@/lib/utils";
 
 export interface StoredAccount extends Profile {
   email: string;
@@ -38,6 +58,17 @@ const STORAGE_KEYS = {
   USER_FRIENDS: "winter_arc_user_friends_v2",
   GROUPS: "winter_arc_groups_v2",
   LEGACY_SEEDED: "winter_arc_seeded_v1",
+  FRIEND_REQUESTS: "arc_chaser_friend_requests_v1",
+  NOTIFICATIONS: "arc_chaser_notifications_v1",
+  DIRECT_MESSAGES: "arc_chaser_direct_messages_v1",
+  GROUP_MESSAGES: "arc_chaser_group_messages_v1",
+  USER_PROFILES_EXTRA: "arc_chaser_user_profiles_extra_v1",
+  TITLES: "arc_chaser_titles_v1",
+  QUESTS: "arc_chaser_quests_v1",
+  USER_QUESTS: "arc_chaser_user_quests_v1",
+  ARC_HISTORY: "arc_chaser_arc_history_v1",
+  BLOCKED_USERS: "arc_chaser_blocked_users_v1",
+  REPORTS: "arc_chaser_reports_v1",
 };
 
 function simpleHash(str: string): string {
@@ -70,8 +101,15 @@ export class StorageRepository {
       localStorage.removeItem("winter_arc_user_achievements");
     }
 
-    if (!localStorage.getItem(STORAGE_KEYS.ACHIEVEMENTS)) {
+    const storedAchs = localStorage.getItem(STORAGE_KEYS.ACHIEVEMENTS);
+    if (!storedAchs || JSON.parse(storedAchs).length < SEED_ACHIEVEMENTS.length) {
       localStorage.setItem(STORAGE_KEYS.ACHIEVEMENTS, JSON.stringify(SEED_ACHIEVEMENTS));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.TITLES)) {
+      localStorage.setItem(STORAGE_KEYS.TITLES, JSON.stringify(SEED_TITLES));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.QUESTS)) {
+      localStorage.setItem(STORAGE_KEYS.QUESTS, JSON.stringify(SEED_QUESTS));
     }
     if (!localStorage.getItem(STORAGE_KEYS.FRIENDS)) {
       localStorage.setItem(STORAGE_KEYS.FRIENDS, JSON.stringify(SEED_FRIENDS));
@@ -99,6 +137,24 @@ export class StorageRepository {
     }
     if (!localStorage.getItem(STORAGE_KEYS.USER_FRIENDS)) {
       localStorage.setItem(STORAGE_KEYS.USER_FRIENDS, JSON.stringify({}));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.FRIEND_REQUESTS)) {
+      localStorage.setItem(STORAGE_KEYS.FRIEND_REQUESTS, JSON.stringify([]));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS)) {
+      localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify({}));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.DIRECT_MESSAGES)) {
+      localStorage.setItem(STORAGE_KEYS.DIRECT_MESSAGES, JSON.stringify({}));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.GROUP_MESSAGES)) {
+      localStorage.setItem(STORAGE_KEYS.GROUP_MESSAGES, JSON.stringify({}));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.USER_PROFILES_EXTRA)) {
+      localStorage.setItem(STORAGE_KEYS.USER_PROFILES_EXTRA, JSON.stringify({}));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.ARC_HISTORY)) {
+      localStorage.setItem(STORAGE_KEYS.ARC_HISTORY, JSON.stringify({}));
     }
   }
 
@@ -519,9 +575,27 @@ export class StorageRepository {
         xpAwarded += 100;
         this.addXP(userId, 100, "perfect_day", log.id);
         this.unlockAchievement(userId, "perfect_day");
+        this.recordQuestAction(userId, "perfect_day", 1);
       }
 
       this.unlockAchievement(userId, "first_step");
+
+      // Check total completed habits milestones
+      const totalCompleted = userLogs.filter((l) => l.completed).length;
+      if (totalCompleted >= 30) this.unlockAchievement(userId, "consistency");
+      if (totalCompleted >= 100) this.unlockAchievement(userId, "century_habits");
+      if (totalCompleted >= 300) this.unlockAchievement(userId, "unstoppable_force");
+
+      // Check midnight discipline (00:00 - 03:59)
+      const hour = new Date().getHours();
+      if (hour >= 0 && hour < 4) {
+        this.unlockAchievement(userId, "midnight_discipline");
+      }
+      if (hour < 12) {
+        this.recordQuestAction(userId, "log_early", 1);
+      }
+
+      this.recordQuestAction(userId, "complete_habits", 1);
     }
 
     return { log, xpAwarded, isPerfectDay };
@@ -563,6 +637,9 @@ export class StorageRepository {
     eventType: XPEvent["event_type"],
     referenceId?: string
   ): void {
+    const currentXp = this.getUserXP(userId);
+    const currentLevel = getLevelProgress(currentXp).level;
+
     const map = this.getAllXPEventsMap();
     const userEvents = map[userId] || [];
     const event: XPEvent = {
@@ -576,9 +653,21 @@ export class StorageRepository {
     userEvents.unshift(event);
     map[userId] = userEvents.slice(0, 100);
     this.saveAllXPEventsMap(map);
+
+    const newLevel = getLevelProgress(currentXp + amount).level;
+    if (newLevel > currentLevel) {
+      this.createNotification(
+        userId,
+        "level_up",
+        `Level Up! Reached Rank ${newLevel}`,
+        `Congratulations! You ascended to Discipline Level ${newLevel}. Keep climbing!`,
+        "/profile",
+        { level: newLevel }
+      );
+    }
   }
 
-  // Achievements
+  // Achievements / Badges
   public static getAchievements(): Achievement[] {
     if (!this.isBrowser()) return SEED_ACHIEVEMENTS;
     const data = localStorage.getItem(STORAGE_KEYS.ACHIEVEMENTS);
@@ -623,12 +712,435 @@ export class StorageRepository {
     if (target.xp_reward > 0) {
       this.addXP(userId, target.xp_reward, "achievement", target.id);
     }
+
+    this.createNotification(
+      userId,
+      "badge_unlocked",
+      `Badge Unlocked: ${target.name}!`,
+      `You earned "${target.name}". +${target.xp_reward} XP awarded.`,
+      "/achievements",
+      { achievement_id: target.id }
+    );
+
     return true;
   }
 
   // ==========================================
-  // SOCIAL & DISCOVERY (COMMUNITY)
+  // TITLES & QUESTS
   // ==========================================
+  public static getTitles(): Title[] {
+    if (!this.isBrowser()) return SEED_TITLES;
+    const data = localStorage.getItem(STORAGE_KEYS.TITLES);
+    return data ? JSON.parse(data) : SEED_TITLES;
+  }
+
+  public static getUserUnlockedTitles(userId: string): Title[] {
+    const titles = this.getTitles();
+    const xp = this.getUserXP(userId);
+    const level = getLevelProgress(xp).level;
+    const userAchs = this.getUserAchievements(userId);
+    const achIds = new Set(userAchs.map((u) => u.achievement_id));
+    const allAchs = this.getAchievements();
+    const unlockedCodes = new Set(
+      allAchs.filter((a) => achIds.has(a.id)).map((a) => a.code)
+    );
+
+    // Get highest streak from active arc if any
+    const arcs = this.getUserArcs(userId);
+    const activeArc = arcs.find((a) => a.status === "active") || arcs[0];
+    const logs = this.getUserHabitLogs(userId);
+    const habits = activeArc ? this.getHabits(activeArc.id) : [];
+    const dates = Array.from(new Set(logs.filter((l) => l.completed).map((l) => l.log_date)));
+    const maxStreak = Math.max(dates.length, 0);
+
+    return titles.filter((title) => {
+      if (title.id === "title-initiate") return true;
+      if (title.required_level && level >= title.required_level) return true;
+      if (title.required_streak && maxStreak >= title.required_streak) return true;
+      if (title.required_achievement_code && unlockedCodes.has(title.required_achievement_code)) return true;
+      return false;
+    });
+  }
+
+  public static equipTitle(userId: string, titleId: string | null): void {
+    this.updatePlayerProfileStats(userId, { equipped_title_id: titleId });
+  }
+
+  public static getQuests(): Quest[] {
+    if (!this.isBrowser()) return SEED_QUESTS;
+    const data = localStorage.getItem(STORAGE_KEYS.QUESTS);
+    return data ? JSON.parse(data) : SEED_QUESTS;
+  }
+
+  private static getAllUserQuestsMap(): Record<string, Record<string, { current: number; completed: boolean; claimed: boolean }>> {
+    return this.getRawMap(STORAGE_KEYS.USER_QUESTS);
+  }
+
+  public static getUserQuests(userId: string): Array<Quest & { current_count: number; is_completed: boolean; is_claimed: boolean }> {
+    const quests = this.getQuests();
+    const map = this.getAllUserQuestsMap();
+    const today = getTodayDateString();
+    const userMap = map[userId] || {};
+
+    return quests.map((q) => {
+      const periodKey = q.frequency === "daily" ? `${q.id}_${today}` : `${q.id}_week`;
+      const record = userMap[periodKey] || { current: 0, completed: false, claimed: false };
+      return {
+        ...q,
+        current_count: record.current,
+        is_completed: record.completed || record.current >= q.target_count,
+        is_claimed: record.claimed,
+      };
+    });
+  }
+
+  public static recordQuestAction(userId: string, actionType: QuestActionType, count: number = 1): void {
+    const quests = this.getQuests();
+    const matching = quests.filter((q) => q.action_type === actionType);
+    if (matching.length === 0) return;
+
+    const map = this.getAllUserQuestsMap();
+    if (!map[userId]) map[userId] = {};
+    const today = getTodayDateString();
+
+    matching.forEach((q) => {
+      const periodKey = q.frequency === "daily" ? `${q.id}_${today}` : `${q.id}_week`;
+      const current = map[userId][periodKey] || { current: 0, completed: false, claimed: false };
+      const nextCount = current.current + count;
+      const isCompleted = nextCount >= q.target_count;
+      map[userId][periodKey] = {
+        current: nextCount,
+        completed: isCompleted,
+        claimed: current.claimed,
+      };
+    });
+
+    this.setRawMap(STORAGE_KEYS.USER_QUESTS, map);
+  }
+
+  public static claimQuestReward(userId: string, questId: string): { success: boolean; xpAwarded: number } {
+    const quests = this.getQuests();
+    const target = quests.find((q) => q.id === questId);
+    if (!target) return { success: false, xpAwarded: 0 };
+
+    const map = this.getAllUserQuestsMap();
+    if (!map[userId]) return { success: false, xpAwarded: 0 };
+    const today = getTodayDateString();
+    const periodKey = target.frequency === "daily" ? `${target.id}_${today}` : `${target.id}_week`;
+    const record = map[userId][periodKey];
+
+    if (!record || !record.completed || record.claimed) {
+      return { success: false, xpAwarded: 0 };
+    }
+
+    record.claimed = true;
+    map[userId][periodKey] = record;
+    this.setRawMap(STORAGE_KEYS.USER_QUESTS, map);
+
+    this.addXP(userId, target.xp_reward, "achievement", target.id);
+    this.createNotification(
+      userId,
+      "badge_unlocked",
+      `Quest Completed: ${target.title}`,
+      `+${target.xp_reward} XP claimed for completing "${target.title}".`,
+      "/dashboard"
+    );
+
+    return { success: true, xpAwarded: target.xp_reward };
+  }
+
+  // ==========================================
+  // PLAYER PROFILE & MODERATION
+  // ==========================================
+  public static getPlayerProfileStats(userId: string): PlayerProfileStats {
+    const map = this.getRawMap<PlayerProfileStats>(STORAGE_KEYS.USER_PROFILES_EXTRA);
+    if (!map[userId]) {
+      map[userId] = {
+        user_id: userId,
+        player_class: "Iron Monk",
+        equipped_title_id: "title-initiate",
+        profile_visibility: "public",
+        friend_request_permission: "everyone",
+        message_permission: "everyone",
+        blocked_user_ids: [],
+      };
+      this.setRawMap(STORAGE_KEYS.USER_PROFILES_EXTRA, map);
+    }
+    return map[userId];
+  }
+
+  public static updatePlayerProfileStats(
+    userId: string,
+    updates: Partial<PlayerProfileStats>
+  ): PlayerProfileStats {
+    const map = this.getRawMap<PlayerProfileStats>(STORAGE_KEYS.USER_PROFILES_EXTRA);
+    const existing = this.getPlayerProfileStats(userId);
+    const updated: PlayerProfileStats = { ...existing, ...updates, user_id: userId };
+    map[userId] = updated;
+    this.setRawMap(STORAGE_KEYS.USER_PROFILES_EXTRA, map);
+    return updated;
+  }
+
+  public static setPlayerClass(userId: string, playerClass: PlayerClassType): void {
+    this.updatePlayerProfileStats(userId, { player_class: playerClass });
+  }
+
+  public static getProfileById(userId: string): Profile | null {
+    const accounts = this.getAccounts();
+    const acc = accounts.find((a) => a.id === userId);
+    if (acc) {
+      const { passwordHash, ...profile } = acc;
+      return profile;
+    }
+    const seed = SEED_FRIENDS.find((s) => s.id === userId);
+    if (seed) return seed;
+    return null;
+  }
+
+  public static getProfileByUsername(username: string): Profile | null {
+    const clean = username.trim().toLowerCase();
+    const accounts = this.getAccounts();
+    const acc = accounts.find((a) => a.username.toLowerCase() === clean);
+    if (acc) {
+      const { passwordHash, ...profile } = acc;
+      return profile;
+    }
+    const seed = SEED_FRIENDS.find((s) => s.username.toLowerCase() === clean);
+    if (seed) return seed;
+    return null;
+  }
+
+  public static blockUser(currentUserId: string, targetUserId: string): void {
+    const stats = this.getPlayerProfileStats(currentUserId);
+    const blocked = new Set(stats.blocked_user_ids || []);
+    blocked.add(targetUserId);
+    this.updatePlayerProfileStats(currentUserId, { blocked_user_ids: Array.from(blocked) });
+    this.removeFriend(targetUserId, currentUserId);
+  }
+
+  public static unblockUser(currentUserId: string, targetUserId: string): void {
+    const stats = this.getPlayerProfileStats(currentUserId);
+    const blocked = (stats.blocked_user_ids || []).filter((id) => id !== targetUserId);
+    this.updatePlayerProfileStats(currentUserId, { blocked_user_ids: blocked });
+  }
+
+  public static isUserBlocked(currentUserId: string, targetUserId: string): boolean {
+    const myStats = this.getPlayerProfileStats(currentUserId);
+    if (myStats.blocked_user_ids?.includes(targetUserId)) return true;
+    const theirStats = this.getPlayerProfileStats(targetUserId);
+    if (theirStats.blocked_user_ids?.includes(currentUserId)) return true;
+    return false;
+  }
+
+  public static getBlockedUserIds(currentUserId: string): string[] {
+    return this.getPlayerProfileStats(currentUserId).blocked_user_ids || [];
+  }
+
+  public static reportUser(reporterId: string, reportedUserId: string, reason: string, details?: string): void {
+    const reports = this.getRawMap<UserReport[]>(STORAGE_KEYS.REPORTS);
+    const list = reports["all"] || [];
+    list.push({
+      id: `rep_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      reporter_id: reporterId,
+      reported_user_id: reportedUserId,
+      reason,
+      details,
+      created_at: new Date().toISOString(),
+    });
+    reports["all"] = list;
+    this.setRawMap(STORAGE_KEYS.REPORTS, reports);
+  }
+
+  // ==========================================
+  // SOCIAL & FRIEND REQUESTS (REAL STATES)
+  // ==========================================
+  public static getAllFriendRequests(): FriendRequest[] {
+    if (!this.isBrowser()) return [];
+    const data = localStorage.getItem(STORAGE_KEYS.FRIEND_REQUESTS);
+    return data ? JSON.parse(data) : [];
+  }
+
+  public static saveAllFriendRequests(reqs: FriendRequest[]): void {
+    if (!this.isBrowser()) return;
+    localStorage.setItem(STORAGE_KEYS.FRIEND_REQUESTS, JSON.stringify(reqs));
+  }
+
+  public static getFriendshipRelation(userId: string, targetUserId: string): FriendshipRelationState {
+    if (this.isUserBlocked(userId, targetUserId)) return "BLOCKED";
+    const friends = this.getUserFriends(userId);
+    if (friends.some((f) => f.id === targetUserId)) return "FRIENDS";
+
+    const reqs = this.getAllFriendRequests();
+    const sent = reqs.find((r) => r.sender_id === userId && r.receiver_id === targetUserId && r.status === "pending");
+    if (sent) return "REQUEST_SENT";
+
+    const received = reqs.find((r) => r.sender_id === targetUserId && r.receiver_id === userId && r.status === "pending");
+    if (received) return "REQUEST_RECEIVED";
+
+    return "NOT_CONNECTED";
+  }
+
+  public static sendFriendRequest(
+    senderId: string,
+    receiverId: string
+  ): { success: boolean; message: string; request?: FriendRequest } {
+    if (senderId === receiverId) {
+      return { success: false, message: "You cannot add yourself as a friend." };
+    }
+    if (this.isUserBlocked(senderId, receiverId)) {
+      return { success: false, message: "Cannot connect with this user." };
+    }
+
+    const targetStats = this.getPlayerProfileStats(receiverId);
+    if (targetStats.friend_request_permission === "none") {
+      return { success: false, message: "This user does not accept friend requests." };
+    }
+
+    const relation = this.getFriendshipRelation(senderId, receiverId);
+    if (relation === "FRIENDS") {
+      return { success: false, message: "Already in your circle." };
+    }
+    if (relation === "REQUEST_SENT") {
+      return { success: false, message: "Friend request is already pending." };
+    }
+
+    const reqs = this.getAllFriendRequests();
+    // Check if the other person already sent a request to us
+    const existingIncoming = reqs.find(
+      (r) => r.sender_id === receiverId && r.receiver_id === senderId && r.status === "pending"
+    );
+    if (existingIncoming) {
+      const res = this.acceptFriendRequest(existingIncoming.id, senderId);
+      return { success: res.success, message: res.message };
+    }
+
+    const senderProfile = this.getProfileById(senderId);
+    const newReq: FriendRequest = {
+      id: `freq_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      sender_id: senderId,
+      receiver_id: receiverId,
+      status: "pending",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      sender_profile: senderProfile || undefined,
+    };
+    reqs.push(newReq);
+    this.saveAllFriendRequests(reqs);
+
+    this.createNotification(
+      receiverId,
+      "friend_request",
+      "New Friend Request",
+      `${senderProfile?.display_name || senderProfile?.username || "A challenger"} sent you an accountability request.`,
+      "/friends",
+      { request_id: newReq.id, sender_id: senderId }
+    );
+
+    this.recordQuestAction(senderId, "send_friend_request", 1);
+
+    return { success: true, message: "Friend request sent!", request: newReq };
+  }
+
+  public static acceptFriendRequest(
+    requestId: string,
+    currentUserId: string
+  ): { success: boolean; message: string; friend?: Profile } {
+    const reqs = this.getAllFriendRequests();
+    const req = reqs.find((r) => r.id === requestId);
+    if (!req || req.status !== "pending") {
+      return { success: false, message: "Request not found or already resolved." };
+    }
+    if (req.receiver_id !== currentUserId) {
+      return { success: false, message: "Unauthorized." };
+    }
+
+    req.status = "accepted";
+    req.updated_at = new Date().toISOString();
+    this.saveAllFriendRequests(reqs);
+
+    // Mutual friend addition
+    const senderProfile = this.getProfileById(req.sender_id);
+    const receiverProfile = this.getProfileById(req.receiver_id);
+
+    if (senderProfile) {
+      const myFriendsMap = this.getRawMap<Profile[]>(STORAGE_KEYS.USER_FRIENDS);
+      const myFriends = myFriendsMap[currentUserId] ? [...myFriendsMap[currentUserId]] : [...SEED_FRIENDS];
+      if (!myFriends.some((f) => f.id === senderProfile.id)) {
+        myFriends.push(senderProfile);
+        myFriendsMap[currentUserId] = myFriends;
+        this.setRawMap(STORAGE_KEYS.USER_FRIENDS, myFriendsMap);
+      }
+    }
+
+    if (receiverProfile) {
+      const theirFriendsMap = this.getRawMap<Profile[]>(STORAGE_KEYS.USER_FRIENDS);
+      const theirFriends = theirFriendsMap[req.sender_id] ? [...theirFriendsMap[req.sender_id]] : [...SEED_FRIENDS];
+      if (!theirFriends.some((f) => f.id === receiverProfile.id)) {
+        theirFriends.push(receiverProfile);
+        theirFriendsMap[req.sender_id] = theirFriends;
+        this.setRawMap(STORAGE_KEYS.USER_FRIENDS, theirFriendsMap);
+      }
+    }
+
+    this.createNotification(
+      req.sender_id,
+      "friend_accepted",
+      "Friend Request Accepted! 🤝",
+      `${receiverProfile?.display_name || receiverProfile?.username || "A challenger"} accepted your friend request.`,
+      "/friends",
+      { friend_id: currentUserId }
+    );
+
+    return {
+      success: true,
+      message: `You and ${senderProfile?.display_name || senderProfile?.username} are now connected!`,
+      friend: senderProfile || undefined,
+    };
+  }
+
+  public static declineFriendRequest(requestId: string, currentUserId: string): { success: boolean; message: string } {
+    const reqs = this.getAllFriendRequests();
+    const req = reqs.find((r) => r.id === requestId);
+    if (!req) return { success: false, message: "Request not found." };
+    if (req.receiver_id !== currentUserId) return { success: false, message: "Unauthorized." };
+
+    req.status = "declined";
+    req.updated_at = new Date().toISOString();
+    this.saveAllFriendRequests(reqs);
+
+    return { success: true, message: "Request declined." };
+  }
+
+  public static cancelFriendRequest(requestId: string, senderId: string): { success: boolean; message: string } {
+    const reqs = this.getAllFriendRequests();
+    const req = reqs.find((r) => r.id === requestId);
+    if (!req) return { success: false, message: "Request not found." };
+    if (req.sender_id !== senderId) return { success: false, message: "Unauthorized." };
+
+    req.status = "cancelled";
+    req.updated_at = new Date().toISOString();
+    this.saveAllFriendRequests(reqs);
+
+    return { success: true, message: "Request cancelled." };
+  }
+
+  public static getFriendRequests(userId: string): { incoming: FriendRequest[]; outgoing: FriendRequest[] } {
+    const reqs = this.getAllFriendRequests();
+    const incoming = reqs
+      .filter((r) => r.receiver_id === userId && r.status === "pending")
+      .map((r) => ({ ...r, sender_profile: this.getProfileById(r.sender_id) || undefined }));
+    const outgoing = reqs
+      .filter((r) => r.sender_id === userId && r.status === "pending")
+      .map((r) => ({ ...r, receiver_profile: this.getProfileById(r.receiver_id) || undefined }));
+
+    return { incoming, outgoing };
+  }
+
+  public static getPendingRequestsCount(userId: string): number {
+    const reqs = this.getAllFriendRequests();
+    return reqs.filter((r) => r.receiver_id === userId && r.status === "pending").length;
+  }
+
   public static getUserFriends(userId?: string): Profile[] {
     if (!this.isBrowser()) return SEED_FRIENDS;
     const currentId = userId || this.getSession()?.userId || "default";
@@ -660,12 +1172,10 @@ export class StorageRepository {
 
     const clean = targetQuery.trim().toLowerCase();
 
-    // Check if already friends
     if (userFriends.some((f) => f.username.toLowerCase() === clean || f.id === targetQuery)) {
       return { success: false, message: "Already in your circle." };
     }
 
-    // First check if target matches an actual registered account
     const accounts = this.getAccounts();
     const registered = accounts.find(
       (a) =>
@@ -681,7 +1191,6 @@ export class StorageRepository {
       const { passwordHash, ...profile } = registered;
       newFriend = profile;
     } else {
-      // Check seed friends or create community challenger
       const seedMatch = SEED_FRIENDS.find(
         (sf) => sf.username.toLowerCase() === clean || sf.id === targetQuery
       );
@@ -721,6 +1230,132 @@ export class StorageRepository {
     const filtered = userFriends.filter((f) => f.id !== friendId);
     map[currentId] = filtered;
     this.setRawMap(STORAGE_KEYS.USER_FRIENDS, map);
+  }
+
+  // ==========================================
+  // NOTIFICATIONS
+  // ==========================================
+  public static createNotification(
+    userId: string,
+    type: NotificationType,
+    title: string,
+    message: string,
+    linkUrl?: string,
+    data?: Record<string, any>
+  ): AppNotification {
+    const map = this.getRawMap<AppNotification[]>(STORAGE_KEYS.NOTIFICATIONS);
+    const userNotifs = map[userId] || [];
+    const notif: AppNotification = {
+      id: `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      user_id: userId,
+      type,
+      title,
+      message,
+      is_read: false,
+      link_url: linkUrl,
+      data,
+      created_at: new Date().toISOString(),
+    };
+    userNotifs.unshift(notif);
+    map[userId] = userNotifs.slice(0, 50);
+    this.setRawMap(STORAGE_KEYS.NOTIFICATIONS, map);
+    return notif;
+  }
+
+  public static getUserNotifications(userId: string): AppNotification[] {
+    const map = this.getRawMap<AppNotification[]>(STORAGE_KEYS.NOTIFICATIONS);
+    return map[userId] || [];
+  }
+
+  public static markNotificationAsRead(userId: string, notificationId: string): void {
+    const map = this.getRawMap<AppNotification[]>(STORAGE_KEYS.NOTIFICATIONS);
+    const userNotifs = map[userId] || [];
+    const target = userNotifs.find((n) => n.id === notificationId);
+    if (target) {
+      target.is_read = true;
+      map[userId] = userNotifs;
+      this.setRawMap(STORAGE_KEYS.NOTIFICATIONS, map);
+    }
+  }
+
+  public static markAllNotificationsAsRead(userId: string): void {
+    const map = this.getRawMap<AppNotification[]>(STORAGE_KEYS.NOTIFICATIONS);
+    const userNotifs = map[userId] || [];
+    userNotifs.forEach((n) => (n.is_read = true));
+    map[userId] = userNotifs;
+    this.setRawMap(STORAGE_KEYS.NOTIFICATIONS, map);
+  }
+
+  public static getUnreadNotificationsCount(userId: string): number {
+    const notifs = this.getUserNotifications(userId);
+    return notifs.filter((n) => !n.is_read).length;
+  }
+
+  // ==========================================
+  // DIRECT & GROUP MESSAGING
+  // ==========================================
+  private static getConversationKey(userA: string, userB: string): string {
+    return [userA, userB].sort().join("___");
+  }
+
+  public static sendDirectMessage(senderId: string, receiverId: string, message: string): DirectMessage {
+    const key = this.getConversationKey(senderId, receiverId);
+    const map = this.getRawMap<DirectMessage[]>(STORAGE_KEYS.DIRECT_MESSAGES);
+    const msgs = map[key] || [];
+
+    const dm: DirectMessage = {
+      id: `dm_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      sender_id: senderId,
+      receiver_id: receiverId,
+      message: message.trim(),
+      is_read: false,
+      created_at: new Date().toISOString(),
+    };
+    msgs.push(dm);
+    map[key] = msgs;
+    this.setRawMap(STORAGE_KEYS.DIRECT_MESSAGES, map);
+
+    const senderProfile = this.getProfileById(senderId);
+    this.createNotification(
+      receiverId,
+      "direct_message",
+      `Message from ${senderProfile?.display_name || senderProfile?.username || "Friend"}`,
+      message.length > 50 ? `${message.slice(0, 50)}...` : message,
+      `/friends?chatWith=${senderId}`,
+      { sender_id: senderId }
+    );
+
+    return dm;
+  }
+
+  public static getDirectMessages(userA: string, userB: string): DirectMessage[] {
+    const key = this.getConversationKey(userA, userB);
+    const map = this.getRawMap<DirectMessage[]>(STORAGE_KEYS.DIRECT_MESSAGES);
+    return map[key] || [];
+  }
+
+  public static markDirectMessagesAsRead(senderId: string, receiverId: string): void {
+    const key = this.getConversationKey(senderId, receiverId);
+    const map = this.getRawMap<DirectMessage[]>(STORAGE_KEYS.DIRECT_MESSAGES);
+    const msgs = map[key] || [];
+    msgs.forEach((m) => {
+      if (m.sender_id === senderId && m.receiver_id === receiverId) {
+        m.is_read = true;
+      }
+    });
+    map[key] = msgs;
+    this.setRawMap(STORAGE_KEYS.DIRECT_MESSAGES, map);
+  }
+
+  public static getUnreadDirectMessagesCount(userId: string): number {
+    const map = this.getRawMap<DirectMessage[]>(STORAGE_KEYS.DIRECT_MESSAGES);
+    let count = 0;
+    Object.keys(map).forEach((k) => {
+      if (k.includes(userId)) {
+        count += (map[k] || []).filter((m) => m.receiver_id === userId && !m.is_read).length;
+      }
+    });
+    return count;
   }
 
   public static getGroups(): Group[] {
@@ -791,25 +1426,106 @@ export class StorageRepository {
     return { success: true, message: `You are already part of ${target.name}!`, group: target };
   }
 
+  public static sendGroupMessage(
+    groupId: string,
+    senderId: string,
+    senderName: string,
+    message: string,
+    senderAvatar?: string | null
+  ): GroupMessage {
+    const map = this.getRawMap<GroupMessage[]>(STORAGE_KEYS.GROUP_MESSAGES);
+    const msgs = map[groupId] || [];
+    const gm: GroupMessage = {
+      id: `gm_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      group_id: groupId,
+      sender_id: senderId,
+      sender_name: senderName,
+      sender_avatar: senderAvatar,
+      message: message.trim(),
+      created_at: new Date().toISOString(),
+    };
+    msgs.push(gm);
+    map[groupId] = msgs;
+    this.setRawMap(STORAGE_KEYS.GROUP_MESSAGES, map);
+
+    this.recordQuestAction(senderId, "cheer_group", 1);
+    return gm;
+  }
+
+  public static getGroupMessages(groupId: string): GroupMessage[] {
+    const map = this.getRawMap<GroupMessage[]>(STORAGE_KEYS.GROUP_MESSAGES);
+    return map[groupId] || [];
+  }
+
+  // ==========================================
+  // ARC HISTORY & ARC PASSPORT
+  // ==========================================
+  public static getArcHistory(userId: string): ArcHistoryStamp[] {
+    const map = this.getRawMap<ArcHistoryStamp[]>(STORAGE_KEYS.ARC_HISTORY);
+    return map[userId] || [];
+  }
+
+  public static stampArcCompletion(userId: string, arcId: string): ArcHistoryStamp | null {
+    const arcs = this.getUserArcs(userId);
+    const targetArc = arcs.find((a) => a.id === arcId);
+    if (!targetArc) return null;
+
+    const habits = this.getHabits(arcId);
+    const logs = this.getUserHabitLogs(userId);
+    const arcLogs = logs.filter((l) => habits.some((h) => h.id === l.habit_id));
+    const completedLogs = arcLogs.filter((l) => l.completed);
+
+    const completionRate = habits.length > 0 ? Math.min(100, Math.round((completedLogs.length / (habits.length * targetArc.duration_days)) * 100)) : 100;
+
+    const stamp: ArcHistoryStamp = {
+      id: `stamp_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      user_id: userId,
+      arc_id: targetArc.id,
+      arc_name: targetArc.name,
+      duration_days: targetArc.duration_days,
+      start_date: targetArc.start_date,
+      end_date: targetArc.end_date,
+      completion_rate: completionRate,
+      total_habits_completed: completedLogs.length,
+      perfect_days: Math.floor(completedLogs.length / (habits.length || 1)),
+      highest_streak: targetArc.duration_days,
+      stamp_title: `${targetArc.name} Conqueror`,
+      stamped_at: new Date().toISOString(),
+    };
+
+    const map = this.getRawMap<ArcHistoryStamp[]>(STORAGE_KEYS.ARC_HISTORY);
+    const list = map[userId] || [];
+    list.unshift(stamp);
+    map[userId] = list;
+    this.setRawMap(STORAGE_KEYS.ARC_HISTORY, map);
+
+    this.unlockAchievement(userId, "winter_legend");
+    this.createNotification(
+      userId,
+      "streak_milestone",
+      `Arc Conquered! 🏆`,
+      `Your passport stamp for "${targetArc.name}" has been sealed into your history.`,
+      "/profile"
+    );
+
+    return stamp;
+  }
+
   public static resetUserData(userId: string): void {
     if (!this.isBrowser()) return;
 
-    // Remove user arcs
     const arcsMap = this.getRawMap<Arc[]>(STORAGE_KEYS.ARCS);
     delete arcsMap[userId];
     this.setRawMap(STORAGE_KEYS.ARCS, arcsMap);
 
-    // Remove logs
     const logsMap = this.getRawMap<HabitLog[]>(STORAGE_KEYS.LOGS);
     delete logsMap[userId];
     this.setRawMap(STORAGE_KEYS.LOGS, logsMap);
 
-    // Remove XP events
     const xpMap = this.getRawMap<XPEvent[]>(STORAGE_KEYS.XP_EVENTS);
     delete xpMap[userId];
     this.setRawMap(STORAGE_KEYS.XP_EVENTS, xpMap);
 
-    // Remove user achievements
     const achMap = this.getRawMap<UserAchievement[]>(STORAGE_KEYS.USER_ACHIEVEMENTS);
     delete achMap[userId];
     this.setRawMap(STORAGE_KEYS.USER_ACHIEVEMENTS, achMap);

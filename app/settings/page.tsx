@@ -37,7 +37,7 @@ export default function SettingsPage() {
   };
 
   const handleResetData = () => {
-    if (confirm("Reset all habit logs, streaks, and challenges to default Winter Arc starter demo?")) {
+    if (confirm("Reset your active habits, logs, and streak progress?")) {
       StorageRepository.resetToDefaults();
       refresh();
       window.location.reload();

@@ -15,13 +15,17 @@
 
 .light {
   --bg-primary: #F8FAFC;
-  --bg-secondary: #F1F5F9;
+  --bg-secondary: #EDF2F7;
   --bg-card: #FFFFFF;
-  --border-color: rgba(15, 23, 42, 0.08);
+  --border-color: rgba(15, 23, 42, 0.09);
   --text-primary: #0F172A;
   --text-muted: #64748B;
   --accent-ice: #0284C7;
   --accent-glow: rgba(2, 132, 199, 0.12);
+}
+
+html {
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 body {
@@ -30,6 +34,63 @@ body {
   min-height: 100vh;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   overflow-x: hidden;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Light mode overrides for arbitrary Tailwind dark utility classes */
+.light, .light body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.light .bg-\[\#080A0F\],
+.light .bg-\[\#080A0F\]\/85,
+.light .bg-\[\#080A0F\]\/80 {
+  background-color: var(--bg-primary) !important;
+}
+
+.light .bg-\[\#10131A\],
+.light .bg-\[\#10131A\]\/60 {
+  background-color: var(--bg-secondary) !important;
+}
+
+.light .bg-\[\#151922\],
+.light .bg-\[\#151922\]\/60 {
+  background-color: var(--bg-card) !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+}
+
+.light .bg-slate-900,
+.light .bg-slate-900\/60,
+.light .bg-slate-950,
+.light .bg-slate-950\/70 {
+  background-color: var(--bg-card) !important;
+}
+
+.light .text-\[\#F5F7FA\],
+.light .text-white {
+  color: var(--text-primary) !important;
+}
+
+.light .text-\[\#8D95A5\],
+.light .text-slate-400,
+.light .text-slate-500 {
+  color: var(--text-muted) !important;
+}
+
+.light .border-white\/\[0\.08\],
+.light .border-white\/\[0\.06\],
+.light .border-white\/\[0\.1\],
+.light .border-white\/\[0\.15\],
+.light .border-slate-800,
+.light .border-slate-700 {
+  border-color: var(--border-color) !important;
+}
+
+.light .glass-panel {
+  background: var(--bg-card) !important;
+  border-color: var(--border-color) !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
 }
 
 /* Linear-style minimal dark glass cards */

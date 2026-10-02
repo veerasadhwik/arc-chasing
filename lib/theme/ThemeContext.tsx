@@ -17,7 +17,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<ThemeMode>("dark");
 
   useEffect(() => {
-    const saved = localStorage.getItem("winter_arc_theme") as ThemeMode;
+    const saved = (localStorage.getItem("arc_chaser_theme") ||
+      localStorage.getItem("winter_arc_theme")) as ThemeMode;
     if (saved && (saved === "dark" || saved === "light" || saved === "system")) {
       setThemeState(saved);
       applyTheme(saved);
@@ -40,7 +41,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const setTheme = (mode: ThemeMode) => {
     setThemeState(mode);
-    localStorage.setItem("winter_arc_theme", mode);
+    localStorage.setItem("arc_chaser_theme", mode);
     applyTheme(mode);
   };
 
